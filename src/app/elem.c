@@ -52,6 +52,8 @@ const char *dc_app_elem_type_to_string(DcAppElemType type) {
             return "False";
         case DC_APP_ELEM_TYPE_FUNCTION:
             return "Function";
+        case DC_APP_ELEM_TYPE_DRAW_FUNCTION:
+            return "DrawFunction";
         case DC_APP_ELEM_TYPE_IF:
             return "If";
         case DC_APP_ELEM_TYPE_IMAGE:
@@ -189,6 +191,8 @@ DcAppElemType dc_app_string_to_elem_type(const char *name) {
         return DC_APP_ELEM_TYPE_FALSE;
     if (strcmp(name, "Function") == 0)
         return DC_APP_ELEM_TYPE_FUNCTION;
+    if (strcmp(name, "DrawFunction") == 0)
+        return DC_APP_ELEM_TYPE_DRAW_FUNCTION;
     if (strcmp(name, "If") == 0)
         return DC_APP_ELEM_TYPE_IF;
     if (strcmp(name, "Image") == 0)

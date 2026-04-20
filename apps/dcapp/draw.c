@@ -17,6 +17,7 @@ static void _draw_node_conditional(_AppData *app_data, _NodeIndex node_index, _N
 static void _draw_node_container(_AppData *app_data, _NodeIndex node_index, _Node *node, plVec2 *parent_position, plVec2 *parent_dimensions, plMat4 *parent_transform);
 static void _draw_node_ellipse(_AppData *app_data, _NodeIndex node_index, _Node *node, plVec2 *parent_position, plVec2 *parent_dimensions, plMat4 *parent_transform);
 static void _draw_node_function(_AppData *app_data, _NodeIndex node_index, _Node *node, plVec2 *parent_position, plVec2 *parent_dimensions, plMat4 *parent_transform);
+static void _draw_node_draw_function(_AppData *app_data, _NodeIndex node_index, _Node *node, plVec2 *parent_position, plVec2 *parent_dimensions, plMat4 *parent_transform);
 static void _draw_node_image(_AppData *app_data, _NodeIndex node_index, _Node *node, plVec2 *parent_position, plVec2 *parent_dimensions, plMat4 *parent_transform);
 static void _draw_node_line(_AppData *app_data, _NodeIndex node_index, _Node *node, plVec2 *parent_position, plVec2 *parent_dimensions, plMat4 *parent_transform);
 static void _draw_node_panel(_AppData *app_data, _NodeIndex node_index, _Node *node, plVec2 *parent_position, plVec2 *parent_dimensions, plMat4 *parent_transform);
@@ -98,6 +99,10 @@ static void _draw_node(_AppData *app_data, _NodeIndex node_index, plVec2 *parent
 
         case NODE_TYPE_FUNCTION:
             _draw_node_function(app_data, node_index, node, parent_position, parent_dimensions, parent_transform);
+            break;
+
+        case NODE_TYPE_DRAW_FUNCTION:
+            _draw_node_draw_function(app_data, node_index, node, parent_position, parent_dimensions, parent_transform);
             break;
 
         case NODE_TYPE_IMAGE:
@@ -1872,6 +1877,20 @@ static void _draw_node_function(_AppData *app_data, _NodeIndex node_index, _Node
         }
     } else {
         node->function.callback();
+    }
+}
+
+static void _draw_node_draw_function(_AppData *app_data, _NodeIndex node_index, _Node *node, plVec2 *parent_position, plVec2 *parent_dimensions, plMat4 *parent_transform) {
+    if (!node->draw_function.callback) return;
+
+    if (node->draw_function.fire_call != DC_APP_VAL_INDEX_UNDEFINED) {
+        DcValue *val = dc_app_lookup_get_value(app_data->lookup, node->draw_function.fire_call);
+        if (!dc_value_is_equal(val, &node->draw_function.last_fire_call_value)) {
+            node->draw_function.callback(_ext_dc_draw, _draw_batch_get_2d(app_data));
+            node->draw_function.last_fire_call_value = *val;
+        }
+    } else {
+        node->draw_function.callback(_ext_dc_draw, _draw_batch_get_2d(app_data));
     }
 }
 

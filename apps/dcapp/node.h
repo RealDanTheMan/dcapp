@@ -67,6 +67,7 @@ typedef enum __NodeType {
     NODE_TYPE_ELLIPSE,
     NODE_TYPE_CONDITIONAL,
     NODE_TYPE_FUNCTION,
+    NODE_TYPE_DRAW_FUNCTION,
     NODE_TYPE_IMAGE,
     NODE_TYPE_LINE,
     NODE_TYPE_MOUSE_MOTION,
@@ -420,6 +421,12 @@ typedef struct __NodeFunction {
     DcValue   last_fire_call_value;
 } _NodeFunction;
 
+typedef struct __NodeDrawFunction {
+    void (*callback)(const dcDrawI *, dcDrawLayer2D *);
+    _ValIndex fire_call;
+    DcValue   last_fire_call_value;
+} _NodeDrawFunction;
+
 typedef struct __NodeSphere {
     // 2D positioning (where to draw in the orthographic view)
     _ValIndex2 position;
@@ -675,6 +682,7 @@ typedef struct __Node {
         _NodeEllipse       ellipse;
         _NodeContainer     container;
         _NodeFunction      function;
+        _NodeDrawFunction  draw_function;
         _NodeImage         image;
         _NodeLine          line;
         _NodeMouseMotion   mouse_motion;

@@ -156,6 +156,7 @@ bool _is_valid_child(DcAppElemType parent_type, DcAppElemType child_type) {
             case DC_APP_ELEM_TYPE_EDGE_IO:
             case DC_APP_ELEM_TYPE_LOGIC:
             case DC_APP_ELEM_TYPE_FUNCTION:
+            case DC_APP_ELEM_TYPE_DRAW_FUNCTION:
             case DC_APP_ELEM_TYPE_PLANET:
                 return true;
             default:
@@ -422,6 +423,7 @@ bool _is_valid_child(DcAppElemType parent_type, DcAppElemType child_type) {
             case DC_APP_ELEM_TYPE_IF:
             case DC_APP_ELEM_TYPE_SET:
             case DC_APP_ELEM_TYPE_FUNCTION:
+            case DC_APP_ELEM_TYPE_DRAW_FUNCTION:
             case DC_APP_ELEM_TYPE_MOUSE_MOTION:
                 return true;
             default:
@@ -693,6 +695,7 @@ bool _is_valid_child(DcAppElemType parent_type, DcAppElemType child_type) {
         case DC_APP_ELEM_TYPE_PLANET_SHADER:
         case DC_APP_ELEM_TYPE_LOGIC:
         case DC_APP_ELEM_TYPE_FUNCTION:
+        case DC_APP_ELEM_TYPE_DRAW_FUNCTION:
         case DC_APP_ELEM_TYPE_MOUSE_MOTION:
             return false;
         default:
@@ -887,6 +890,17 @@ void _validate_required_attributes(ValidationContext *ctx, xmlNodePtr node, DcAp
             break;
         }
 
+        case DC_APP_ELEM_TYPE_DRAW_FUNCTION: {
+            xmlChar *name = xmlGetProp(node, BAD_CAST "Name");
+            if (!name) {
+                DC_LOG_ERROR("Validate", "<DrawFunction> missing required attribute 'Name' (line %ld)", xmlGetLineNo(node));
+                ctx->error_count++;
+            } else {
+                xmlFree(name);
+            }
+            break;
+        }
+
         case DC_APP_ELEM_TYPE_BLINK: {
             xmlChar *var = xmlGetProp(node, BAD_CAST "FireBlink");
             if (!var) {
@@ -998,6 +1012,7 @@ static const char *_valid_attrs_button[]         = {"Type", "Variable", "EnableV
 static const char *_valid_attrs_ellipse[]        = {"Radius", "RadiusX", "RadiusY", "Segments", "Angle", NULL};
 static const char *_valid_attrs_constant[]       = {"Name", NULL};
 static const char *_valid_attrs_function[]       = {"Name", "FireCall", NULL};
+static const char *_valid_attrs_draw_function[]  = {"Name", "FireCall", NULL};
 static const char *_valid_attrs_if[]             = {"Value", "Value1", "Value2", "Operator", "Static", NULL};
 static const char *_valid_attrs_image[]          = {"File", NULL};
 static const char *_valid_attrs_logic[]          = {"File", NULL};
@@ -1110,6 +1125,9 @@ static bool _is_valid_attr_for_elem(const char *attr_name, DcAppElemType elem_ty
 
         case DC_APP_ELEM_TYPE_FUNCTION:
             return _attr_in_list(attr_name, _valid_attrs_function);
+
+        case DC_APP_ELEM_TYPE_DRAW_FUNCTION:
+            return _attr_in_list(attr_name, _valid_attrs_draw_function);
 
         case DC_APP_ELEM_TYPE_IF:
             return _attr_in_list(attr_name, _valid_attrs_if);

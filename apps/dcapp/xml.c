@@ -33,6 +33,7 @@ static _NodeIndex    _process_xml_node_edge_variable(_AppData *app_data, xmlNode
 static _NodeIndex    _process_xml_node_ellipse(_AppData *app_data, xmlNodePtr xml_node, _NodeIndex parent_node_index, DcAppElemType parent_elem_type, const char *directory);
 static _NodeIndex    _process_xml_node_false(_AppData *app_data, xmlNodePtr xml_node, _NodeIndex parent_node_index, DcAppElemType parent_elem_type, const char *directory);
 static _NodeIndex    _process_xml_node_function(_AppData *app_data, xmlNodePtr xml_node, _NodeIndex parent_node_index, DcAppElemType parent_elem_type, const char *directory);
+static _NodeIndex    _process_xml_node_draw_function(_AppData *app_data, xmlNodePtr xml_node, _NodeIndex parent_node_index, DcAppElemType parent_elem_type, const char *directory);
 static _NodeIndex    _process_xml_node_if(_AppData *app_data, xmlNodePtr xml_node, _NodeIndex parent_node_index, DcAppElemType parent_elem_type, const char *directory);
 static _NodeIndex    _process_xml_node_image(_AppData *app_data, xmlNodePtr xml_node, _NodeIndex parent_node_index, DcAppElemType parent_elem_type, const char *directory);
 static _NodeIndex    _process_xml_node_line(_AppData *app_data, xmlNodePtr xml_node, _NodeIndex parent_node_index, DcAppElemType parent_elem_type, const char *directory);
@@ -241,6 +242,9 @@ static _NodeIndex _process_xml_node(_AppData *app_data, xmlNodePtr xml_node, _No
 
         case DC_APP_ELEM_TYPE_FUNCTION:
             return _process_xml_node_function(app_data, xml_node, parent_node_index, parent_elem_type, directory);
+
+        case DC_APP_ELEM_TYPE_DRAW_FUNCTION:
+            return _process_xml_node_draw_function(app_data, xml_node, parent_node_index, parent_elem_type, directory);
 
         case DC_APP_ELEM_TYPE_IF:
             return _process_xml_node_if(app_data, xml_node, parent_node_index, parent_elem_type, directory);
@@ -1671,6 +1675,39 @@ static _NodeIndex _process_xml_node_function(_AppData *app_data, xmlNodePtr xml_
     }
 
     // register node
+    return _register_node(app_data, &dc_node);
+}
+
+static _NodeIndex _process_xml_node_draw_function(_AppData *app_data, xmlNodePtr xml_node, _NodeIndex parent_node_index, DcAppElemType parent_elem_type, const char *directory) {
+    DcAppElemType elem_type = dc_app_xml_node_to_elem_type(xml_node);
+
+    _Node dc_node   = {};
+    dc_node.type    = NODE_TYPE_DRAW_FUNCTION;
+    dc_node.parent  = parent_node_index;
+
+    // get function name
+    xmlChar *raw_name = xmlGetProp(xml_node, BAD_CAST "Name");
+    if (raw_name) {
+        if (app_data->logic_lib) {
+            dc_node.draw_function.callback = (void (*)(const dcDrawI *, dcDrawLayer2D *))_ext_library->load_function(app_data->logic_lib, (const char *)raw_name);
+            if (!dc_node.draw_function.callback) {
+                DC_LOG_ERROR("Draw Function", "Failed to load draw function '%s' from logic library", (const char *)raw_name);
+            }
+        } else {
+            DC_LOG_ERROR("Draw Function", "No logic library loaded, cannot load function '%s'", (const char *)raw_name);
+        }
+        xmlFree(raw_name);
+    } else {
+        DC_LOG_ERROR("Draw Function", "Missing 'Name' attribute");
+    }
+
+    // edge-triggered call
+    xmlChar *raw_fire_call = xmlGetProp(xml_node, BAD_CAST "FireCall");
+    if (raw_fire_call) {
+        dc_node.draw_function.fire_call = dc_app_create_and_register_typed_value_from_string(app_data->lookup, DC_VALUE_TYPE_INTEGER, (const char *)raw_fire_call);
+        xmlFree(raw_fire_call);
+    }
+
     return _register_node(app_data, &dc_node);
 }
 
