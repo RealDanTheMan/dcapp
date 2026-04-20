@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+  <DCAPP>
+      <Logic File="logic/logic.so"/>
+      <Window Title="Draw Function Demo" X="30" Y="30" Width="1500" Height="1200"
+              VirtualWidth="500" VirtualHeight="400">
+          <Panel VirtualWidth="500" VirtualHeight="400" BackgroundColor="0.12 0.12 0.15">
+              <DrawFunction Name="draw_function_test"/>
+          </Panel>
+      </Window>
+  </DCAPP>

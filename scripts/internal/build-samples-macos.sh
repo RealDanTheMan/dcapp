@@ -56,18 +56,21 @@ done
 if [[ "$PL_CONFIG" == "release" ]]; then
 
 # create output directory(s)
-mkdir -p "../../samples/functions/logic"
-mkdir -p "../../samples/ptz/logic"
+mkdir -p "../../samples/draw_functions/logic"
 mkdir -p "../../samples/planet/logic"
+mkdir -p "../../samples/functions/logic"
+mkdir -p "../../samples/mask/logic"
+mkdir -p "../../samples/ptz/logic"
 mkdir -p "../../samples/lissajous/logic"
 mkdir -p "../../samples/screensaver/logic"
-mkdir -p "../../samples/mask/logic"
 
 # create lock file(s)
 echo LOCKING > "../../samples/screensaver/logic/lock.tmp"
 
 PL_BUILD_STATUS=0
 
+rm -f ../../samples/draw_functions/logic/logic.dylib
+rm -f ../../samples/draw_functions/logic/logic_*.dylib
 rm -f ../../samples/functions/logic/logic.dylib
 rm -f ../../samples/functions/logic/logic_*.dylib
 rm -f ../../samples/lissajous/logic/logic.dylib
@@ -80,6 +83,50 @@ rm -f ../../samples/ptz/logic/logic.dylib
 rm -f ../../samples/ptz/logic/logic_*.dylib
 rm -f ../../samples/screensaver/logic/logic.dylib
 rm -f ../../samples/screensaver/logic/logic_*.dylib
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~ draw_functions | release ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+../../pilotlight/out/dcapp-genheader ../../samples/draw_functions/draw_functions.xml
+
+PL_RESULT=${BOLD}${GREEN}Successful.${NC}
+PL_DEFINES=""
+PL_INCLUDE_DIRECTORIES=""
+PL_LINK_DIRECTORIES=""
+PL_COMPILER_FLAGS="-fmodules -ObjC -fPIC -DNDEBUG "
+PL_LINKER_FLAGS="-Wl,-rpath,/usr/local/lib "
+PL_STATIC_LINK_LIBRARIES=""
+PL_DYNAMIC_LINK_LIBRARIES=""
+PL_SOURCES="../../samples/draw_functions/logic/logic.c "
+PL_LINK_FRAMEWORKS="-framework Metal -framework MetalKit -framework Cocoa -framework IOKit -framework CoreVideo -framework QuartzCore "
+
+# add flags for specific hardware
+if [[ "$ARCH" == "arm64" ]]; then
+    PL_COMPILER_FLAGS+="-arch arm64 "
+else
+    PL_COMPILER_FLAGS+="-arch x86_64 "
+fi
+
+# run compiler (and linker)
+echo
+echo ${YELLOW}Step: draw_functions${NC}
+echo ${YELLOW}~~~~~~~~~~~~~~~~~~~${NC}
+echo ${CYAN}Compiling and Linking...${NC}
+clang -shared $PL_SOURCES $PL_INCLUDE_DIRECTORIES $PL_DEFINES $PL_COMPILER_FLAGS $PL_INCLUDE_DIRECTORIES $PL_LINK_DIRECTORIES $PL_STATIC_LINK_LIBRARIES $PL_DYNAMIC_LINK_LIBRARIES $PL_LINK_FRAMEWORKS $PL_LINKER_FLAGS -o "./../../samples/draw_functions/logic/logic.dylib"
+
+# check build status
+if [ $? -ne 0 ]
+then
+    PL_RESULT=${BOLD}${RED}Failed.${NC}
+    PL_BUILD_STATUS=1
+echo ${CYAN}Results: ${NC} ${PL_RESULT}
+echo ${CYAN}~~~~~~~~~~~~~~~~~~~~~~${NC}
+popd >/dev/null
+exit 1
+fi
+
+# print results
+echo ${CYAN}Results: ${NC} ${PL_RESULT}
+echo ${CYAN}~~~~~~~~~~~~~~~~~~~~~~${NC}
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ functions | release ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ../../pilotlight/out/dcapp-genheader ../../samples/functions/functions.xml
@@ -358,18 +405,21 @@ fi
 if [[ "$PL_CONFIG" == "debug" ]]; then
 
 # create output directory(s)
-mkdir -p "../../samples/functions/logic"
-mkdir -p "../../samples/ptz/logic"
+mkdir -p "../../samples/draw_functions/logic"
 mkdir -p "../../samples/planet/logic"
+mkdir -p "../../samples/functions/logic"
+mkdir -p "../../samples/mask/logic"
+mkdir -p "../../samples/ptz/logic"
 mkdir -p "../../samples/lissajous/logic"
 mkdir -p "../../samples/screensaver/logic"
-mkdir -p "../../samples/mask/logic"
 
 # create lock file(s)
 echo LOCKING > "../../samples/screensaver/logic/lock.tmp"
 
 PL_BUILD_STATUS=0
 
+rm -f ../../samples/draw_functions/logic/logic.dylib
+rm -f ../../samples/draw_functions/logic/logic_*.dylib
 rm -f ../../samples/functions/logic/logic.dylib
 rm -f ../../samples/functions/logic/logic_*.dylib
 rm -f ../../samples/lissajous/logic/logic.dylib
@@ -382,6 +432,50 @@ rm -f ../../samples/ptz/logic/logic.dylib
 rm -f ../../samples/ptz/logic/logic_*.dylib
 rm -f ../../samples/screensaver/logic/logic.dylib
 rm -f ../../samples/screensaver/logic/logic_*.dylib
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~ draw_functions | debug ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+../../pilotlight/out/dcapp-genheader ../../samples/draw_functions/draw_functions.xml
+
+PL_RESULT=${BOLD}${GREEN}Successful.${NC}
+PL_DEFINES=""
+PL_INCLUDE_DIRECTORIES=""
+PL_LINK_DIRECTORIES=""
+PL_COMPILER_FLAGS="-fmodules -ObjC -fPIC --debug -g "
+PL_LINKER_FLAGS="-Wl,-rpath,/usr/local/lib "
+PL_STATIC_LINK_LIBRARIES=""
+PL_DYNAMIC_LINK_LIBRARIES=""
+PL_SOURCES="../../samples/draw_functions/logic/logic.c "
+PL_LINK_FRAMEWORKS="-framework Metal -framework MetalKit -framework Cocoa -framework IOKit -framework CoreVideo -framework QuartzCore "
+
+# add flags for specific hardware
+if [[ "$ARCH" == "arm64" ]]; then
+    PL_COMPILER_FLAGS+="-arch arm64 "
+else
+    PL_COMPILER_FLAGS+="-arch x86_64 "
+fi
+
+# run compiler (and linker)
+echo
+echo ${YELLOW}Step: draw_functions${NC}
+echo ${YELLOW}~~~~~~~~~~~~~~~~~~~${NC}
+echo ${CYAN}Compiling and Linking...${NC}
+clang -shared $PL_SOURCES $PL_INCLUDE_DIRECTORIES $PL_DEFINES $PL_COMPILER_FLAGS $PL_INCLUDE_DIRECTORIES $PL_LINK_DIRECTORIES $PL_STATIC_LINK_LIBRARIES $PL_DYNAMIC_LINK_LIBRARIES $PL_LINK_FRAMEWORKS $PL_LINKER_FLAGS -o "./../../samples/draw_functions/logic/logic.dylib"
+
+# check build status
+if [ $? -ne 0 ]
+then
+    PL_RESULT=${BOLD}${RED}Failed.${NC}
+    PL_BUILD_STATUS=1
+echo ${CYAN}Results: ${NC} ${PL_RESULT}
+echo ${CYAN}~~~~~~~~~~~~~~~~~~~~~~${NC}
+popd >/dev/null
+exit 1
+fi
+
+# print results
+echo ${CYAN}Results: ${NC} ${PL_RESULT}
+echo ${CYAN}~~~~~~~~~~~~~~~~~~~~~~${NC}
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ functions | debug ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ../../pilotlight/out/dcapp-genheader ../../samples/functions/functions.xml

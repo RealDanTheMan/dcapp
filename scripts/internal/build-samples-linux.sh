@@ -54,18 +54,21 @@ done
 if [[ "$PL_CONFIG" == "release" ]]; then
 
 # create output directory(s)
-mkdir -p "../../samples/functions/logic"
-mkdir -p "../../samples/ptz/logic"
+mkdir -p "../../samples/draw_functions/logic"
 mkdir -p "../../samples/planet/logic"
+mkdir -p "../../samples/functions/logic"
+mkdir -p "../../samples/mask/logic"
+mkdir -p "../../samples/ptz/logic"
 mkdir -p "../../samples/lissajous/logic"
 mkdir -p "../../samples/screensaver/logic"
-mkdir -p "../../samples/mask/logic"
 
 # create lock file(s)
 echo LOCKING > "../../samples/screensaver/logic/lock.tmp"
 
 PL_BUILD_STATUS=0
 
+rm -f ../../samples/draw_functions/logic/logic.so
+rm -f ../../samples/draw_functions/logic/logic_*.so
 rm -f ../../samples/functions/logic/logic.so
 rm -f ../../samples/functions/logic/logic_*.so
 rm -f ../../samples/lissajous/logic/logic.so
@@ -78,6 +81,42 @@ rm -f ../../samples/ptz/logic/logic.so
 rm -f ../../samples/ptz/logic/logic_*.so
 rm -f ../../samples/screensaver/logic/logic.so
 rm -f ../../samples/screensaver/logic/logic_*.so
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~ draw_functions | release ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+../../pilotlight/out/dcapp-genheader ../../samples/draw_functions/draw_functions.xml
+
+PL_RESULT=${BOLD}${GREEN}Successful.${NC}
+PL_DEFINES=""
+PL_INCLUDE_DIRECTORIES=""
+PL_LINK_DIRECTORIES="-L/usr/lib/x86_64-linux-gnu -Wl,-rpath,/usr/lib/x86_64-linux-gnu "
+PL_COMPILER_FLAGS="-fPIC -DNDEBUG "
+PL_LINKER_FLAGS="-ldl -lm "
+PL_STATIC_LINK_LIBRARIES=""
+PL_DYNAMIC_LINK_LIBRARIES=""
+PL_SOURCES="../../samples/draw_functions/logic/logic.c "
+
+# run compiler (and linker)
+echo
+echo ${YELLOW}Step: draw_functions${NC}
+echo ${YELLOW}~~~~~~~~~~~~~~~~~~~${NC}
+echo ${CYAN}Compiling and Linking...${NC}
+gcc -shared $PL_SOURCES $PL_INCLUDE_DIRECTORIES $PL_DEFINES $PL_COMPILER_FLAGS $PL_INCLUDE_DIRECTORIES $PL_LINK_DIRECTORIES $PL_STATIC_LINK_LIBRARIES $PL_DYNAMIC_LINK_LIBRARIES $PL_LINKER_FLAGS -o "./../../samples/draw_functions/logic/logic.so"
+
+# check build status
+if [ $? -ne 0 ]
+then
+    PL_RESULT=${BOLD}${RED}Failed.${NC}
+    PL_BUILD_STATUS=1
+echo ${CYAN}Results: ${NC} ${PL_RESULT}
+echo ${CYAN}~~~~~~~~~~~~~~~~~~~~~~${NC}
+popd >/dev/null
+exit 1
+fi
+
+# print results
+echo ${CYAN}Results: ${NC} ${PL_RESULT}
+echo ${CYAN}~~~~~~~~~~~~~~~~~~~~~~${NC}
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ functions | release ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -309,18 +348,21 @@ fi
 if [[ "$PL_CONFIG" == "debug" ]]; then
 
 # create output directory(s)
-mkdir -p "../../samples/functions/logic"
-mkdir -p "../../samples/ptz/logic"
+mkdir -p "../../samples/draw_functions/logic"
 mkdir -p "../../samples/planet/logic"
+mkdir -p "../../samples/functions/logic"
+mkdir -p "../../samples/mask/logic"
+mkdir -p "../../samples/ptz/logic"
 mkdir -p "../../samples/lissajous/logic"
 mkdir -p "../../samples/screensaver/logic"
-mkdir -p "../../samples/mask/logic"
 
 # create lock file(s)
 echo LOCKING > "../../samples/screensaver/logic/lock.tmp"
 
 PL_BUILD_STATUS=0
 
+rm -f ../../samples/draw_functions/logic/logic.so
+rm -f ../../samples/draw_functions/logic/logic_*.so
 rm -f ../../samples/functions/logic/logic.so
 rm -f ../../samples/functions/logic/logic_*.so
 rm -f ../../samples/lissajous/logic/logic.so
@@ -333,6 +375,42 @@ rm -f ../../samples/ptz/logic/logic.so
 rm -f ../../samples/ptz/logic/logic_*.so
 rm -f ../../samples/screensaver/logic/logic.so
 rm -f ../../samples/screensaver/logic/logic_*.so
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~ draw_functions | debug ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+../../pilotlight/out/dcapp-genheader ../../samples/draw_functions/draw_functions.xml
+
+PL_RESULT=${BOLD}${GREEN}Successful.${NC}
+PL_DEFINES=""
+PL_INCLUDE_DIRECTORIES=""
+PL_LINK_DIRECTORIES="-L/usr/lib/x86_64-linux-gnu -Wl,-rpath,/usr/lib/x86_64-linux-gnu "
+PL_COMPILER_FLAGS="-fPIC --debug -g -O0 "
+PL_LINKER_FLAGS="-ldl -lm "
+PL_STATIC_LINK_LIBRARIES=""
+PL_DYNAMIC_LINK_LIBRARIES=""
+PL_SOURCES="../../samples/draw_functions/logic/logic.c "
+
+# run compiler (and linker)
+echo
+echo ${YELLOW}Step: draw_functions${NC}
+echo ${YELLOW}~~~~~~~~~~~~~~~~~~~${NC}
+echo ${CYAN}Compiling and Linking...${NC}
+gcc -shared $PL_SOURCES $PL_INCLUDE_DIRECTORIES $PL_DEFINES $PL_COMPILER_FLAGS $PL_INCLUDE_DIRECTORIES $PL_LINK_DIRECTORIES $PL_STATIC_LINK_LIBRARIES $PL_DYNAMIC_LINK_LIBRARIES $PL_LINKER_FLAGS -o "./../../samples/draw_functions/logic/logic.so"
+
+# check build status
+if [ $? -ne 0 ]
+then
+    PL_RESULT=${BOLD}${RED}Failed.${NC}
+    PL_BUILD_STATUS=1
+echo ${CYAN}Results: ${NC} ${PL_RESULT}
+echo ${CYAN}~~~~~~~~~~~~~~~~~~~~~~${NC}
+popd >/dev/null
+exit 1
+fi
+
+# print results
+echo ${CYAN}Results: ${NC} ${PL_RESULT}
+echo ${CYAN}~~~~~~~~~~~~~~~~~~~~~~${NC}
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ functions | debug ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

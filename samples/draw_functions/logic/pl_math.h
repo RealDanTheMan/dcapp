@@ -1,0 +1,2953 @@
+/*
+   pl_math.h
+     * simple math library
+
+   Do this:
+        #define PL_MATH_INCLUDE_FUNCTIONS
+   before you include this file in *one* C or C++ file to create include math functions.
+   // i.e. it should look like this:
+   #include ...
+   #include ...
+   #include ...
+   #define PL_MATH_INCLUDE_FUNCTIONS
+   #include "pl_math.h"
+*/
+
+// library version (format XYYZZ)
+#define PL_MATH_VERSION    "1.2.1"
+#define PL_MATH_VERSION_NUM 10201
+
+/*
+Index of this file:
+// [SECTION] header mess
+// [SECTION] forward declarations & basic types
+// [SECTION] defines
+// [SECTION] structs
+// [SECTION] primitive types
+// [SECTION] function section
+// [SECTION] includes
+// [SECTION] helpers
+// [SECTION] general math
+// [SECTION] vector ops (single precision)
+// [SECTION] vector ops (double precision)
+// [SECTION] matrix ops (single precision)
+// [SECTION] matrix ops (double precision)
+// [SECTION] quaternion ops (single precision)
+// [SECTION] quaternion ops (double precision)
+// [SECTION] rect ops
+// [SECTION] aabb ops
+// [SECTION] colors
+// [SECTION] implementations
+*/
+
+//-----------------------------------------------------------------------------
+// [SECTION] header mess
+//-----------------------------------------------------------------------------
+
+#ifndef PL_MATH_INC
+#define PL_MATH_INC
+
+//-----------------------------------------------------------------------------
+// [SECTION] forward declarations & basic types
+//-----------------------------------------------------------------------------
+
+// general math (single precision)
+typedef union  _plVec2 plVec2;
+typedef union  _plVec3 plVec3;
+typedef union  _plVec4 plVec4;
+typedef union  _plMat3 plMat3;
+typedef union  _plMat4 plMat4;
+
+// general math (double precision)
+typedef union  _plVec2d plVec2d;
+typedef union  _plVec3d plVec3d;
+typedef union  _plVec4d plVec4d;
+typedef union  _plMat3d plMat3d;
+typedef union  _plMat4d plMat4d;
+
+// geometric primitives
+typedef struct _plRect     plRect;
+typedef struct _plAABB     plAABB;
+typedef struct _plPlane    plPlane;
+typedef struct _plSphere   plSphere;
+typedef struct _plBox      plBox;
+typedef struct _plCone     plCone;
+typedef struct _plRay      plRay;
+typedef struct _plCylinder plCylinder;
+typedef struct _plCapsule  plCapsule;
+
+//-----------------------------------------------------------------------------
+// [SECTION] defines
+//-----------------------------------------------------------------------------
+
+#define PL_E        2.71828182f // e
+#define PL_LOG2E    1.44269504f // log2(e)
+#define PL_LOG10E   0.43429448f // log10(e)
+#define PL_LN2      0.69314718f // ln(2)
+#define PL_LN10     2.30258509f // ln(10)
+#define PL_PI       3.14159265f // pi
+#define PL_2PI      6.28318530f // pi
+#define PL_PI_2     1.57079632f // pi/2
+#define PL_PI_3     1.04719755f // pi/3
+#define PL_PI_4     0.78539816f // pi/4
+#define PL_1_PI     0.31830988f // 1/pi
+#define PL_2_PI     0.63661977f // 2/pi
+#define PL_2_SQRTPI 1.12837916f // 2/sqrt(pi)
+#define PL_SQRT2    1.41421356f // sqrt(2)
+#define PL_SQRT1_2  0.70710678f // 1/sqrt(2)
+#define PL_PI_D     3.1415926535897932 // pi
+
+//-----------------------------------------------------------------------------
+// [SECTION] structs
+//-----------------------------------------------------------------------------
+
+typedef union _plVec2
+{
+    struct { float x, y; };
+    struct { float r, g; };
+    struct { float u, v; };
+    float d[2];
+} plVec2;
+
+typedef union _plVec3
+{
+    struct { float x, y, z; };
+    struct { float r, g, b; };
+    struct { float u, v, __; };
+    struct { plVec2 xy; float ignore0_; };
+    struct { plVec2 rg; float ignore1_; };
+    struct { plVec2 uv; float ignore2_; };
+    struct { float ignore3_; plVec2 yz; };
+    struct { float ignore4_; plVec2 gb; };
+    struct { float ignore5_; plVec2 v__; };
+    float d[3];
+} plVec3;
+
+typedef union _plVec4
+{
+    struct
+    {
+        union
+        {
+            plVec3 xyz;
+            struct{ float x, y, z;};
+        };
+
+        float w;
+    };
+    struct
+    {
+        union
+        {
+            plVec3 rgb;
+            struct{ float r, g, b;};
+        };
+        float a;
+    };
+    struct
+    {
+        plVec2 xy;
+        float ignored0_, ignored1_;
+    };
+    struct
+    {
+        float ignored2_;
+        plVec2 yz;
+        float ignored3_;
+    };
+    struct
+    {
+        float ignored4_, ignored5_;
+        plVec2 zw;
+    };
+    float d[4];
+} plVec4;
+
+typedef union _plMat3
+{
+    plVec3 col[3];
+    struct {
+        float x11;
+        float x21;
+        float x31;
+        float x12;
+        float x22;
+        float x32;
+        float x13;
+        float x23;
+        float x33;
+    };
+    float d[9];
+} plMat3;
+
+typedef union _plMat4
+{
+    plVec4 col[4];
+    struct {
+        float x11;
+        float x21;
+        float x31;
+        float x41;
+        float x12;
+        float x22;
+        float x32;
+        float x42;
+        float x13;
+        float x23;
+        float x33;
+        float x43;
+        float x14;
+        float x24;
+        float x34;
+        float x44;
+    };
+    float d[16];
+} plMat4;
+
+typedef union _plVec2d
+{
+    struct { double x, y; };
+    struct { double r, g; };
+    struct { double u, v; };
+    double d[2];
+} plVec2d;
+
+typedef union _plVec3d
+{
+    struct { double x, y, z; };
+    struct { double r, g, b; };
+    struct { double u, v, __; };
+    struct { plVec2d xy; double ignore0_; };
+    struct { plVec2d rg; double ignore1_; };
+    struct { plVec2d uv; double ignore2_; };
+    struct { double ignore3_; plVec2d yz; };
+    struct { double ignore4_; plVec2d gb; };
+    struct { double ignore5_; plVec2d v__; };
+    double d[3];
+} plVec3d;
+
+typedef union _plVec4d
+{
+    struct
+    {
+        union
+        {
+            plVec3d xyz;
+            struct{ double x, y, z;};
+        };
+
+        double w;
+    };
+    struct
+    {
+        union
+        {
+            plVec3d rgb;
+            struct{ double r, g, b;};
+        };
+        double a;
+    };
+    struct
+    {
+        plVec2d xy;
+        double ignored0_, ignored1_;
+    };
+    struct
+    {
+        double ignored2_;
+        plVec2d yz;
+        double ignored3_;
+    };
+    struct
+    {
+        double ignored4_, ignored5_;
+        plVec2d zw;
+    };
+    double d[4];
+} plVec4d;
+
+typedef union _plMat3d
+{
+    plVec3d col[3];
+    struct {
+        double x11;
+        double x21;
+        double x31;
+        double x12;
+        double x22;
+        double x32;
+        double x13;
+        double x23;
+        double x33;
+    };
+    double d[9];
+} plMat3d;
+
+typedef union _plMat4d
+{
+    plVec4d col[4];
+    struct {
+        double x11;
+        double x21;
+        double x31;
+        double x41;
+        double x12;
+        double x22;
+        double x32;
+        double x42;
+        double x13;
+        double x23;
+        double x33;
+        double x43;
+        double x14;
+        double x24;
+        double x34;
+        double x44;
+    };
+    double d[16];
+} plMat4d;
+
+//-----------------------------------------------------------------------------
+// [SECTION] primitive types
+//-----------------------------------------------------------------------------
+
+typedef struct _plRect
+{
+    plVec2 tMin;
+    plVec2 tMax;
+} plRect;
+
+typedef struct _plAABB
+{
+    plVec3 tMin;
+    plVec3 tMax;
+} plAABB;
+
+typedef struct _plPlane
+{
+    float  fOffset;    // opposite of direction
+    plVec3 tDirection; // normal
+} plPlane;
+
+typedef struct _plSphere
+{
+    float  fRadius;
+    plVec3 tCenter;
+} plSphere;
+
+typedef struct _plBox
+{
+    plMat4 tTransform;
+    plVec3 tHalfSize;
+} plBox;
+
+typedef struct _plCone
+{
+    plVec3 tBasePos;
+    plVec3 tTipPos;
+    float  fRadius;
+} plCone;
+
+typedef struct _plCylinder
+{
+    plVec3 tBasePos;
+    plVec3 tTipPos;
+    float  fRadius;
+} plCylinder;
+
+typedef struct _plCapsule
+{
+    plVec3 tBasePos;
+    plVec3 tTipPos;
+    float  fRadius;
+} plCapsule;
+
+typedef struct _plRay
+{
+    plVec3 tOrigin;
+    plVec3 tDirection;
+} plRay;
+
+#endif // PL_MATH_INC
+
+//-----------------------------------------------------------------------------
+// [SECTION] function section
+//-----------------------------------------------------------------------------
+
+#if defined(PL_MATH_INCLUDE_FUNCTIONS) && !defined(PL_MATH_INCLUDE_FUNCTIONS_H)
+#define PL_MATH_INCLUDE_FUNCTIONS_H
+
+//-----------------------------------------------------------------------------
+// [SECTION] includes
+//-----------------------------------------------------------------------------
+
+#include <math.h>
+#include <stdbool.h> // bool
+#include <stdint.h>  // uint*_t
+
+#ifdef PL_MATH_USE_SSE
+    #include <immintrin.h>
+#endif
+
+#ifdef PL_MATH_USE_NEON
+    #include <arm_neon.h>
+#endif
+
+#ifndef PL_ASSERT
+    #include <assert.h>
+    #define PL_ASSERT(x) assert((x))
+#endif
+
+//-----------------------------------------------------------------------------
+// [SECTION] helpers
+//-----------------------------------------------------------------------------
+
+#ifdef __cplusplus
+    #define pl_create_vec2(XARG, YARG)                  {(XARG), (YARG)}
+    #define pl_create_vec3(XARG, YARG, ZARG)            {(XARG), (YARG), (ZARG)}
+    #define pl_create_vec4(XARG, YARG, ZARG, WARG)      {(XARG), (YARG), (ZARG), (WARG)}
+    #define pl_create_mat3_diag(XARG, YARG, ZARG)       {(XARG), 0.0, 0.0f, 0.0f, (YARG), 0.0f, 0.0f, 0.0f, (ZARG)}
+    #define pl_create_mat3_cols(XARG, YARG, ZARG)       {(XARG).x, (XARG).y, (XARG).z, (YARG).x, (YARG).y, (YARG).z, (ZARG).x, (ZARG).y, (ZARG).z}
+    #define pl_create_mat4_diag(XARG, YARG, ZARG, WARG) {(XARG), 0.0, 0.0f, 0.0f, 0.0f, (YARG), 0.0f, 0.0f, 0.0f, 0.0f, (ZARG), 0.0f, 0.0f, 0.0f, 0.0f, (WARG)}
+    #define pl_create_mat4_cols(XARG, YARG, ZARG, WARG) {(XARG).x, (XARG).y, (XARG).z, (XARG).w, (YARG).x, (YARG).y, (YARG).z, (YARG).w, (ZARG).x, (ZARG).y, (ZARG).z, (ZARG).w, (WARG).x, (WARG).y, (WARG).z, (WARG).w}
+    #define pl_create_rect_vec2(XARG, YARG)             {(XARG), (YARG)}
+    #define pl_create_rect(XARG, YARG, ZARG, WARG)      {{(XARG), (YARG)}, {(ZARG), (WARG)}}
+    
+    #define pl_create_vec2_d(XARG, YARG)                  {(XARG), (YARG)}
+    #define pl_create_vec3_d(XARG, YARG, ZARG)            {(XARG), (YARG), (ZARG)}
+    #define pl_create_vec4_d(XARG, YARG, ZARG, WARG)      {(XARG), (YARG), (ZARG), (WARG)}
+    #define pl_create_mat3_diag_d(XARG, YARG, ZARG)       {(XARG), 0.0, 0.0, 0.0, (YARG), 0.0, 0.0, 0.0, (ZARG)}
+    #define pl_create_mat3_cols_d(XARG, YARG, ZARG)       {(XARG).x, (XARG).y, (XARG).z, (YARG).x, (YARG).y, (YARG).z, (ZARG).x, (ZARG).y, (ZARG).z}
+    #define pl_create_mat4_diag_d(XARG, YARG, ZARG, WARG) {(XARG), 0.0, 0.0, 0.0, 0.0, (YARG), 0.0, 0.0, 0.0, 0.0, (ZARG), 0.0, 0.0, 0.0, 0.0, (WARG)}
+    #define pl_create_mat4_cols_d(XARG, YARG, ZARG, WARG) {(XARG).x, (XARG).y, (XARG).z, (XARG).w, (YARG).x, (YARG).y, (YARG).z, (YARG).w, (ZARG).x, (ZARG).y, (ZARG).z, (ZARG).w, (WARG).x, (WARG).y, (WARG).z, (WARG).w}
+#else
+    #define pl_create_vec2(XARG, YARG)                  (plVec2){(XARG), (YARG)}
+    #define pl_create_vec3(XARG, YARG, ZARG)            (plVec3){(XARG), (YARG), (ZARG)}
+    #define pl_create_vec4(XARG, YARG, ZARG, WARG)      (plVec4){(XARG), (YARG), (ZARG), (WARG)}
+    #define pl_create_mat3_diag(XARG, YARG, ZARG)       (plMat3){.x11 = (XARG), .x22 = (YARG), .x33 = (ZARG)}
+    #define pl_create_mat3_cols(XARG, YARG, ZARG)       (plMat3){.col[0] = (XARG), .col[1] = (YARG), .col[2] = (ZARG)}
+    #define pl_create_mat4_diag(XARG, YARG, ZARG, WARG) (plMat4){.x11 = (XARG), .x22 = (YARG), .x33 = (ZARG), .x44 = (WARG)}
+    #define pl_create_mat4_cols(XARG, YARG, ZARG, WARG) (plMat4){.col[0] = (XARG), .col[1] = (YARG), .col[2] = (ZARG), .col[3] = (WARG)}
+    #define pl_create_rect_vec2(XARG, YARG)             (plRect){.tMin = (XARG), .tMax = (YARG)}
+    #define pl_create_rect(XARG, YARG, ZARG, WARG)      (plRect){.tMin = {.x = (XARG), .y = (YARG)}, .tMax = {.x = (ZARG), .y = (WARG)}}
+
+    #define pl_create_vec2_d(XARG, YARG)                  (plVec2d){(XARG), (YARG)}
+    #define pl_create_vec3_d(XARG, YARG, ZARG)            (plVec3d){(XARG), (YARG), (ZARG)}
+    #define pl_create_vec4_d(XARG, YARG, ZARG, WARG)      (plVec4d){(XARG), (YARG), (ZARG), (WARG)}
+    #define pl_create_mat3_diag_d(XARG, YARG, ZARG)       (plMat3d){.x11 = (XARG), .x22 = (YARG), .x33 = (ZARG)}
+    #define pl_create_mat3_cols_d(XARG, YARG, ZARG)       (plMat3d){.col[0] = (XARG), .col[1] = (YARG), .col[2] = (ZARG)}
+    #define pl_create_mat4_diag_d(XARG, YARG, ZARG, WARG) (plMat4d){.x11 = (XARG), .x22 = (YARG), .x33 = (ZARG), .x44 = (WARG)}
+    #define pl_create_mat4_cols_d(XARG, YARG, ZARG, WARG) (plMat4d){.col[0] = (XARG), .col[1] = (YARG), .col[2] = (ZARG), .col[3] = (WARG)}
+#endif
+
+//-----------------------------------------------------------------------------
+// [SECTION] general math
+//-----------------------------------------------------------------------------
+
+#define pl_max(Value1, Value2) ((Value1) > (Value2) ? (Value1) : (Value2))
+#define pl_min(Value1, Value2) ((Value1) > (Value2) ? (Value2) : (Value1))
+#define pl_square(Value)       ((Value) * (Value))
+#define pl_cube(Value)         ((Value) * (Value) * (Value))
+
+static inline float    pl_radiansf(float fDegrees)                                { return fDegrees * 0.0174532925f; }
+static inline float    pl_degreesf(float fRadians)                                { return fRadians * 57.29577951f; }
+static inline double   pl_radiansd(double dDegrees)                               { return dDegrees * 0.0174532925; }
+static inline double   pl_degreesd(double dRadians)                               { return dRadians * 57.29577951; }
+static inline float    pl_maxf    (float fValue1, float fValue2)                  { return fValue1 > fValue2 ? fValue1 : fValue2; }
+static inline float    pl_minf    (float fValue1, float fValue2)                  { return fValue1 > fValue2 ? fValue2 : fValue1; }
+static inline int      pl_maxi    (int iValue1, int iValue2)                      { return iValue1 > iValue2 ? iValue1 : iValue2; }
+static inline int      pl_mini    (int iValue1, int iValue2)                      { return iValue1 > iValue2 ? iValue2 : iValue1; }
+static inline uint32_t pl_maxu    (uint32_t uValue1, uint32_t uValue2)            { return uValue1 > uValue2 ? uValue1 : uValue2; }
+static inline uint32_t pl_minu    (uint32_t uValue1, uint32_t uValue2)            { return uValue1 > uValue2 ? uValue2 : uValue1; }
+static inline double   pl_maxd    (double dValue1, double dValue2)                { return dValue1 > dValue2 ? dValue1 : dValue2; }
+static inline double   pl_mind    (double dValue1, double dValue2)                { return dValue1 > dValue2 ? dValue2 : dValue1; }
+static inline float    pl_squaref (float fValue)                                  { return fValue * fValue;}
+static inline float    pl_cubef   (float fValue)                                  { return fValue * fValue * fValue;}
+static inline int      pl_clampi  (int iMin, int iValue, int iMax)                { if (iValue < iMin) return iMin; else if (iValue > iMax) return iMax; return iValue; }
+static inline uint32_t pl_clampu  (uint32_t iMin, uint32_t iValue, uint32_t iMax) { if (iValue < iMin) return iMin; else if (iValue > iMax) return iMax; return iValue; }
+static inline float    pl_clampf  (float fMin, float fValue, float fMax)          { if (fValue < fMin) return fMin; else if (fValue > fMax) return fMax; return fValue; }
+static inline double   pl_clampd  (double dMin, double dValue, double dMax)       { if (dValue < dMin) return dMin; else if (dValue > dMax) return dMax; return dValue; }
+static inline float    pl_clamp01f(float fValue)                                  { return pl_clampf(0.0f, fValue, 1.0f); }
+static inline double   pl_clamp01d(double dValue)                                 { return pl_clampd(0.0, dValue, 1.0); }
+static inline size_t   pl_align_up(size_t szValue, size_t szAlign)                { return ((szValue + (szAlign - 1)) & ~(szAlign - 1)); }
+
+//-----------------------------------------------------------------------------
+// [SECTION] vector ops (single precision)
+//-----------------------------------------------------------------------------
+
+// unary ops
+static inline float  pl_length_sqr_vec2(plVec2);
+static inline float  pl_length_sqr_vec3(plVec3);
+static inline float  pl_length_sqr_vec4(plVec4);
+static inline float  pl_length_vec2    (plVec2);
+static inline float  pl_length_vec3    (plVec3);
+static inline float  pl_length_vec4    (plVec4);
+static inline plVec2 pl_floor_vec2     (plVec2);
+static inline plVec3 pl_floor_vec3     (plVec3);
+static inline plVec4 pl_floor_vec4     (plVec4);
+
+// binary ops
+static inline plVec2 pl_lerp_vec2(plVec2 t0, plVec2 t1, float amount);
+static inline plVec3 pl_lerp_vec3(plVec3 t0, plVec3 t1, float amount);
+static inline plVec4 pl_lerp_vec4(plVec4 t0, plVec4 t1, float amount);
+
+static inline plVec2 pl_clamp_vec2(plVec2 minValue, plVec2 value, plVec2 maxValue);
+static inline plVec3 pl_clamp_vec3(plVec3 minValue, plVec3 value, plVec3 maxValue);
+static inline plVec4 pl_clamp_vec4(plVec4 minValue, plVec4 value, plVec4 maxValue);
+
+static inline plVec2 pl_min_vec2(plVec2, plVec2);
+static inline plVec3 pl_min_vec3(plVec3, plVec3);
+static inline plVec4 pl_min_vec4(plVec4, plVec4);
+static inline plVec2 pl_max_vec2(plVec2, plVec2);
+static inline plVec3 pl_max_vec3(plVec3, plVec3);
+static inline plVec4 pl_max_vec4(plVec4, plVec4);
+
+static inline plVec3 pl_cross_vec3(plVec3, plVec3);
+
+static inline float  pl_dot_vec2(plVec2, plVec2);
+static inline float  pl_dot_vec3(plVec3, plVec3);
+static inline float  pl_dot_vec4(plVec4, plVec4);
+
+static inline plVec2 pl_add_vec2(plVec2, plVec2);
+static inline plVec3 pl_add_vec3(plVec3, plVec3);
+static inline plVec4 pl_add_vec4(plVec4, plVec4);
+
+static inline plVec2 pl_sub_vec2(plVec2, plVec2);
+static inline plVec3 pl_sub_vec3(plVec3, plVec3);
+static inline plVec4 pl_sub_vec4(plVec4, plVec4);
+
+static inline plVec2 pl_mul_vec2(plVec2, plVec2);
+static inline plVec3 pl_mul_vec3(plVec3, plVec3);
+static inline plVec4 pl_mul_vec4(plVec4, plVec4);
+
+static inline plVec2 pl_div_vec2(plVec2, plVec2);
+static inline plVec3 pl_div_vec3(plVec3, plVec3);
+static inline plVec4 pl_div_vec4(plVec4, plVec4);
+
+static inline plVec2 pl_mul_vec2_scalarf(plVec2, float);
+static inline plVec3 pl_mul_vec3_scalarf(plVec3, float);
+static inline plVec4 pl_mul_vec4_scalarf(plVec4, float);
+
+static inline plVec2 pl_div_vec2_scalarf(plVec2, float);
+static inline plVec3 pl_div_vec3_scalarf(plVec3, float);
+static inline plVec4 pl_div_vec4_scalarf(plVec4, float);
+
+static inline plVec2 pl_div_scalarf_vec2(float, plVec2);
+static inline plVec3 pl_div_scalarf_vec3(float, plVec3);
+static inline plVec4 pl_div_scalarf_vec4(float, plVec4);
+
+static inline plVec2 pl_norm_vec2(plVec2);
+static inline plVec3 pl_norm_vec3(plVec3);
+static inline plVec4 pl_norm_vec4(plVec4);
+
+//-----------------------------------------------------------------------------
+// [SECTION] vector ops (double precision)
+//-----------------------------------------------------------------------------
+
+// unary ops
+static inline double  pl_length_sqr_vec2_d(plVec2d);
+static inline double  pl_length_sqr_vec3_d(plVec3d);
+static inline double  pl_length_sqr_vec4_d(plVec4d);
+static inline double  pl_length_vec2_d    (plVec2d);
+static inline double  pl_length_vec3_d    (plVec3d);
+static inline double  pl_length_vec4_d    (plVec4d);
+static inline plVec2d pl_floor_vec2_d     (plVec2d);
+static inline plVec3d pl_floor_vec3_d     (plVec3d);
+static inline plVec4d pl_floor_vec4_d     (plVec4d);
+
+// binary ops
+static inline plVec2d pl_lerp_vec2_d(plVec2d t0, plVec2d t1, double amount);
+static inline plVec3d pl_lerp_vec3_d(plVec3d t0, plVec3d t1, double amount);
+static inline plVec4d pl_lerp_vec4_d(plVec4d t0, plVec4d t1, double amount);
+
+static inline plVec2d pl_clamp_vec2_d(plVec2d minValue, plVec2d value, plVec2d maxValue);
+static inline plVec3d pl_clamp_vec3_d(plVec3d minValue, plVec3d value, plVec3d maxValue);
+static inline plVec4d pl_clamp_vec4_d(plVec4d minValue, plVec4d value, plVec4d maxValue);
+
+static inline plVec2d pl_min_vec2_d(plVec2d, plVec2d);
+static inline plVec3d pl_min_vec3_d(plVec3d, plVec3d);
+static inline plVec4d pl_min_vec4_d(plVec4d, plVec4d);
+static inline plVec2d pl_max_vec2_d(plVec2d, plVec2d);
+static inline plVec3d pl_max_vec3_d(plVec3d, plVec3d);
+static inline plVec4d pl_max_vec4_d(plVec4d, plVec4d);
+
+static inline plVec3d pl_cross_vec3_d(plVec3d, plVec3d);
+
+static inline double  pl_dot_vec2_d(plVec2d, plVec2d);
+static inline double  pl_dot_vec3_d(plVec3d, plVec3d);
+static inline double  pl_dot_vec4_d(plVec4d, plVec4d);
+
+static inline plVec2d pl_add_vec2_d(plVec2d, plVec2d);
+static inline plVec3d pl_add_vec3_d(plVec3d, plVec3d);
+static inline plVec4d pl_add_vec4_d(plVec4d, plVec4d);
+
+static inline plVec2d pl_sub_vec2_d(plVec2d, plVec2d);
+static inline plVec3d pl_sub_vec3_d(plVec3d, plVec3d);
+static inline plVec4d pl_sub_vec4_d(plVec4d, plVec4d);
+
+static inline plVec2d pl_mul_vec2_d(plVec2d, plVec2d);
+static inline plVec3d pl_mul_vec3_d(plVec3d, plVec3d);
+static inline plVec4d pl_mul_vec4_d(plVec4d, plVec4d);
+
+static inline plVec2d pl_div_vec2_d(plVec2d, plVec2d);
+static inline plVec3d pl_div_vec3_d(plVec3d, plVec3d);
+static inline plVec4d pl_div_vec4_d(plVec4d, plVec4d);
+
+static inline plVec2d pl_mul_vec2_scalard(plVec2d, double);
+static inline plVec3d pl_mul_vec3_scalard(plVec3d, double);
+static inline plVec4d pl_mul_vec4_scalard(plVec4d, double);
+
+static inline plVec2d pl_div_vec2_scalard(plVec2d, double);
+static inline plVec3d pl_div_vec3_scalard(plVec3d, double);
+static inline plVec4d pl_div_vec4_scalard(plVec4d, double);
+
+static inline plVec2d pl_div_scalar_vec2(double, plVec2d);
+static inline plVec3d pl_div_scalar_vec3(double, plVec3d);
+static inline plVec4d pl_div_scalar_vec4(double, plVec4d);
+
+static inline plVec2d pl_norm_vec2_d(plVec2d);
+static inline plVec3d pl_norm_vec3_d(plVec3d);
+static inline plVec4d pl_norm_vec4_d(plVec4d);
+
+//-----------------------------------------------------------------------------
+// [SECTION] matrix ops (single precision)
+//-----------------------------------------------------------------------------
+
+// general ops 3x3
+static inline float  pl_mat3_get        (const plMat3*, int row, int col);
+static inline void   pl_mat3_set        (plMat3*, int row, int col, float value);
+static inline plMat3 pl_identity_mat3   (void);
+static inline plMat3 pl_mat3_transpose  (const plMat3*);
+static inline plMat3 pl_mat3_invert     (const plMat3*);
+static inline plMat3 pl_mul_scalarf_mat3(float, const plMat3*);
+static inline plVec3 pl_mul_mat3_vec3   (const plMat3*, plVec3);
+static inline plMat3 pl_mul_mat3        (const plMat3*, const plMat3*);
+static inline plMat3 pl_add_mat3        (const plMat3*, const plMat3*);
+
+// general ops 4x4
+static inline float  pl_mat4_get        (const plMat4*, int row, int col);
+static inline void   pl_mat4_set        (plMat4*, int row, int col, float value);
+static inline plMat4 pl_identity_mat4   (void);
+static inline plMat4 pl_mat4_transpose  (const plMat4*);
+static inline plMat4 pl_mat4_invert     (const plMat4*);
+static inline plMat4 pl_mul_scalarf_mat4(float, const plMat4*);
+static inline plVec3 pl_mul_mat4_vec3   (const plMat4*, plVec3);
+static inline plVec4 pl_mul_mat4_vec4   (const plMat4*, plVec4);
+static inline plMat4 pl_mul_mat4        (const plMat4*, const plMat4*);
+static inline plMat4 pl_add_mat4        (const plMat4*, const plMat4*);
+static inline plMat4 pl_mul_mat4_3      (const plMat4*, const plMat4*, const plMat4*);
+
+// translation, rotation, scaling
+static inline plMat4 pl_mat4_translate_xyz        (float x, float y, float z);
+static inline plMat4 pl_mat4_translate_vec3       (plVec3);
+static inline plMat4 pl_mat4_rotate_vec3          (float angle, plVec3);
+static inline plMat4 pl_mat4_rotate_xyz           (float angle, float x, float y, float z);
+static inline plMat4 pl_mat4_scale_xyz            (float x, float y, float z);
+static inline plMat4 pl_mat4_scale_vec3           (plVec3);
+static inline plMat4 pl_mat4_rotate_quat          (plVec4 q);
+static inline plMat4 pl_rotation_translation_scale(plVec4 q, plVec3 t, plVec3 s);
+
+// transforms (optimized for orthogonal matrices)
+static inline plMat4 pl_mat4t_invert(const plMat4*);
+static inline plMat4 pl_mul_mat4t   (const plMat4*, const plMat4*);
+
+//-----------------------------------------------------------------------------
+// [SECTION] matrix ops (double precision)
+//-----------------------------------------------------------------------------
+
+// general ops 3x3
+static inline double  pl_mat3_get_d      (const plMat3d*, int row, int col);
+static inline void    pl_mat3_set_d      (plMat3d*, int row, int col, double value);
+static inline plMat3d pl_identity_mat3_d (void);
+static inline plMat3d pl_mat3_transpose_d(const plMat3d*);
+static inline plMat3d pl_mat3_invert_d   (const plMat3d*);
+static inline plMat3d pl_mul_scalar_mat3 (double, const plMat3d*);
+static inline plVec3d pl_mul_mat3_vec3_d (const plMat3d*, plVec3d);
+static inline plMat3d pl_mul_mat3_d      (const plMat3d*, const plMat3d*);
+static inline plMat3d pl_add_mat3_d      (const plMat3d*, const plMat3d*);
+
+// general ops 4x4
+static inline double  pl_mat4_get_d      (const plMat4d*, int row, int col);
+static inline void    pl_mat4_set_d      (plMat4d*, int row, int col, double value);
+static inline plMat4d pl_identity_mat4_d (void);
+static inline plMat4d pl_mat4_transpose_d(const plMat4d*);
+static inline plMat4d pl_mat4_invert_d   (const plMat4d*);
+static inline plMat4d pl_mul_scalar_mat4 (double, const plMat4d*);
+static inline plVec3d pl_mul_mat4_vec3_d (const plMat4d*, plVec3d);
+static inline plVec4d pl_mul_mat4_vec4_d (const plMat4d*, plVec4d);
+static inline plMat4d pl_mul_mat4_d      (const plMat4d*, const plMat4d*);
+static inline plMat4d pl_add_mat4_d      (const plMat4d*, const plMat4d*);
+static inline plMat4d pl_mul_mat4_3_d    (const plMat4d*, const plMat4d*, const plMat4d*);
+
+// translation, rotation, scaling
+static inline plMat4d pl_mat4_translate_xyz_d        (double x, double y, double z);
+static inline plMat4d pl_mat4_translate_vec3_d       (plVec3d);
+static inline plMat4d pl_mat4_rotate_vec3_d          (double angle, plVec3d);
+static inline plMat4d pl_mat4_rotate_xyz_d           (double angle, double x, double y, double z);
+static inline plMat4d pl_mat4_scale_xyz_d            (double x, double y, double z);
+static inline plMat4d pl_mat4_scale_vec3_d           (plVec3d);
+static inline plMat4d pl_mat4_rotate_quat_d          (plVec4d q);
+static inline plMat4d pl_rotation_translation_scale_d(plVec4d q, plVec3d t, plVec3d s);
+
+// transforms (optimized for orthogonal matrices)
+static inline plMat4d pl_mat4t_invert_d(const plMat4d*);
+static inline plMat4d pl_mul_mat4t_d   (const plMat4d*, const plMat4d*);
+
+//-----------------------------------------------------------------------------
+// [SECTION] quaternion ops (single precision)
+//-----------------------------------------------------------------------------
+
+static inline plVec3 pl_mul_quat_vec3     (plVec3 v, plVec4 q);
+static inline plVec4 pl_mul_quat          (plVec4 q1, plVec4 q2);
+static inline plVec4 pl_quat_rotation     (float angle, float x, float y, float z);
+static inline plVec4 pl_quat_rotation_vec3(float angle, plVec3 axis);
+static inline plVec4 pl_norm_quat         (plVec4 q);
+static inline plVec4 pl_quat_slerp        (plVec4 q1, plVec4 q2, float t);
+static inline float  pl_quat_decompose    (plVec4 q, plVec3* axisOut);
+static inline void   pl_decompose_matrix  (const plMat4*, plVec3* s, plVec4* q, plVec3* t);
+
+//-----------------------------------------------------------------------------
+// [SECTION] quaternion ops (double precision)
+//-----------------------------------------------------------------------------
+
+static inline plVec3d pl_mul_quat_vec3_d     (plVec3d v, plVec4d q);
+static inline plVec4d pl_mul_quat_d          (plVec4d q1, plVec4d q2);
+static inline plVec4d pl_quat_rotation_d     (double angle, double x, double y, double z);
+static inline plVec4d pl_quat_rotation_vec3_d(double angle, plVec3d axis);
+static inline plVec4d pl_norm_quat_d         (plVec4d q);
+static inline plVec4d pl_quat_slerp_d        (plVec4d q1, plVec4d q2, double t);
+static inline double  pl_quat_decompose_d    (plVec4d q, plVec3d* axisOut);
+static inline void    pl_decompose_matrix_d  (const plMat4d*, plVec3d* s, plVec4d* q, plVec3d* t);
+
+//-----------------------------------------------------------------------------
+// [SECTION] rect ops
+//-----------------------------------------------------------------------------
+
+static inline plRect pl_calculate_rect     (plVec2 start, plVec2 size);
+static inline float  pl_rect_width         (const plRect*);
+static inline float  pl_rect_height        (const plRect*);
+static inline plVec2 pl_rect_size          (const plRect*);
+static inline plVec2 pl_rect_center        (const plRect*);
+static inline plVec2 pl_rect_top_left      (const plRect*);                             
+static inline plVec2 pl_rect_top_right     (const plRect*);
+static inline plVec2 pl_rect_bottom_left   (const plRect*);
+static inline plVec2 pl_rect_bottom_right  (const plRect*);                      
+static inline bool   pl_rect_contains_point(const plRect*, plVec2 p);
+static inline bool   pl_rect_contains_rect (const plRect*, const plRect*);
+static inline bool   pl_rect_overlaps_rect (const plRect*, const plRect*);
+static inline bool   pl_rect_is_inverted   (const plRect*);
+static inline plRect pl_rect_expand        (const plRect*, float padding);
+static inline plRect pl_rect_expand_vec2   (const plRect*, plVec2 padding);
+static inline plRect pl_rect_clip          (const plRect*, const plRect*);
+static inline plRect pl_rect_clip_full     (const plRect*, const plRect*);
+static inline plRect pl_rect_floor         (const plRect*);
+static inline plRect pl_rect_translate_vec2(const plRect*, plVec2 delta);
+static inline plRect pl_rect_translate_x   (const plRect*, float dx);
+static inline plRect pl_rect_translate_y   (const plRect*, float dy);
+static inline plRect pl_rect_add_point     (const plRect*, plVec2 p);
+static inline plRect pl_rect_add_rect      (const plRect*, const plRect*);
+static inline plRect pl_rect_move_center   (const plRect*, float x, float y);
+static inline plRect pl_rect_move_center_y (const plRect*, float y);
+static inline plRect pl_rect_move_center_x (const plRect*, float x);
+static inline plRect pl_rect_move_start    (const plRect*, float x, float y);
+static inline plRect pl_rect_move_start_x  (const plRect*, float x);
+static inline plRect pl_rect_move_start_y  (const plRect*, float y);
+
+//-----------------------------------------------------------------------------
+// [SECTION] aabb ops
+//-----------------------------------------------------------------------------
+
+static inline plAABB pl_aabb_merge     (const plAABB*, const plAABB*);
+static inline plVec3 pl_aabb_half_width(const plAABB*);
+static inline plVec3 pl_aabb_center    (const plAABB*);
+
+//-----------------------------------------------------------------------------
+// [SECTION] colors
+//-----------------------------------------------------------------------------
+
+// creates packed 32-bit encoded colors
+#define PL_COLOR_32_RGBA(R, G, B, A) ((uint32_t)(255.0f * (R) + 0.5f) | (uint32_t) (255.0f * (G) + 0.5f) << 8 | (uint32_t) (255.0f * (B) + 0.5f) << 16 | (uint32_t) (255.0f * (A) + 0.5f) << 24)
+#define PL_COLOR_32_VEC4(X)          ((uint32_t)(255.0f * (X).r + 0.5f) | (uint32_t) (255.0f * (X).g + 0.5f) << 8 | (uint32_t) (255.0f * (X).b + 0.5f) << 16 | (uint32_t) (255.0f * (X).a + 0.5f) << 24)
+#define PL_COLOR_32_RGB(R, G, B)     ((uint32_t)(255.0f * (R) + 0.5f) | (uint32_t) (255.0f * (G) + 0.5f) << 8 | (uint32_t) (255.0f * (B) + 0.5f) << 16 | (uint32_t) (255.5f) << 24)
+#define PL_COLOR_32_VEC3(X)          ((uint32_t)(255.0f * (X).r + 0.5f) | (uint32_t) (255.0f * (X).g + 0.5f) << 8 | (uint32_t) (255.0f * (X).b + 0.5f) << 16 | (uint32_t) (255.5f) << 24)
+#define PL_COLOR_32_WHITE            UINT32_MAX
+#define PL_COLOR_32_BLACK            0xFF000000
+#define PL_COLOR_32_RED              0xFF0000FF
+#define PL_COLOR_32_BLUE             0xFFFF0000
+#define PL_COLOR_32_DARK_BLUE        0xFF8B0000
+#define PL_COLOR_32_GREEN            0xFF00FF00
+#define PL_COLOR_32_YELLOW           0xFF00FFFF
+#define PL_COLOR_32_ORANGE           0xFF00A5FF
+#define PL_COLOR_32_MAGENTA          0xFFFF00FF
+#define PL_COLOR_32_CYAN             0xFFFFFF00
+#define PL_COLOR_32_GREY             0xFF808080
+#define PL_COLOR_32_LIGHT_GREY       0xFFD3D3D3
+
+//-----------------------------------------------------------------------------
+// [SECTION] implementations
+//-----------------------------------------------------------------------------
+
+static inline float
+pl_length_sqr_vec2(plVec2 tVec)
+{ 
+    return pl_squaref(tVec.x) + pl_squaref(tVec.y);
+}
+
+static inline float
+pl_length_sqr_vec3(plVec3 tVec)
+{ 
+    return pl_squaref(tVec.x) + pl_squaref(tVec.y) + pl_squaref(tVec.z);
+}
+
+static inline float
+pl_length_sqr_vec4(plVec4 tVec)
+{ 
+    return pl_squaref(tVec.x) + pl_squaref(tVec.y) + pl_squaref(tVec.z) + pl_squaref(tVec.w);
+}
+
+static inline float
+pl_length_vec2(plVec2 tVec)
+{ 
+    return sqrtf(pl_length_sqr_vec2(tVec));
+}
+
+static inline float 
+pl_length_vec3(plVec3 tVec)
+{ 
+    return sqrtf(pl_length_sqr_vec3(tVec));
+}
+
+static inline float
+pl_length_vec4(plVec4 tVec)
+{ 
+    return sqrtf(pl_length_sqr_vec4(tVec));
+}
+
+static inline plVec2
+pl_floor_vec2(plVec2 tVec)
+{ 
+    return pl_create_vec2(floorf(tVec.x), floorf(tVec.y));
+}
+
+static inline plVec3
+pl_floor_vec3(plVec3 tVec)
+{ 
+    return pl_create_vec3(floorf(tVec.x), floorf(tVec.y), floorf(tVec.z));
+}
+
+static inline plVec4
+pl_floor_vec4(plVec4 tVec)
+{ 
+    return pl_create_vec4(floorf(tVec.x), floorf(tVec.y), floorf(tVec.z), floorf(tVec.w));
+}
+
+static inline plVec2
+pl_lerp_vec2(plVec2 t0, plVec2 t1, float fAmount)
+{
+    return pl_create_vec2(t0.x + (t1.x - t0.x) * fAmount, t0.y + (t1.y - t0.y) * fAmount);
+}
+
+static inline plVec3
+pl_lerp_vec3(plVec3 t0, plVec3 t1, float fAmount)
+{
+    return pl_create_vec3(t0.x + (t1.x - t0.x) * fAmount, t0.y + (t1.y - t0.y) * fAmount, t0.z + (t1.z - t0.z) * fAmount);
+}
+
+static inline plVec4
+pl_lerp_vec4(plVec4 t0, plVec4 t1, float fAmount)
+{
+    return pl_create_vec4(t0.x + (t1.x - t0.x) * fAmount, t0.y + (t1.y - t0.y) * fAmount, t0.z + (t1.z - t0.z) * fAmount, t0.w + (t1.w - t0.w) * fAmount);
+}
+
+static inline plVec2
+pl_clamp_vec2(plVec2 tMin, plVec2 tValue, plVec2 tMax)
+{
+    return pl_create_vec2(pl_clampf(tMin.x, tValue.x, tMax.x), pl_clampf(tMin.y, tValue.y, tMax.y));
+}
+
+static inline plVec3
+pl_clamp_vec3(plVec3 tMin, plVec3 tValue, plVec3 tMax)
+{
+    return pl_create_vec3(pl_clampf(tMin.x, tValue.x, tMax.x), pl_clampf(tMin.y, tValue.y, tMax.y), pl_clampf(tMax.z, tValue.z, tMax.z));
+}
+
+static inline plVec4
+pl_clamp_vec4(plVec4 tMin, plVec4 tValue, plVec4 tMax)
+{
+    return pl_create_vec4(pl_clampf(tMin.x, tValue.x, tMax.x), pl_clampf(tMin.y, tValue.y, tMax.y), pl_clampf(tMax.z, tValue.z, tMax.z), pl_clampf(tMax.w, tValue.w, tMax.w));
+}
+
+static inline plVec2
+pl_min_vec2(plVec2 tValue0, plVec2 tValue1)
+{
+    return pl_create_vec2(pl_minf(tValue0.x, tValue1.x), pl_minf(tValue0.y, tValue1.y));
+}
+
+static inline plVec3
+pl_min_vec3(plVec3 tValue0, plVec3 tValue1)
+{
+    return pl_create_vec3(pl_minf(tValue0.x, tValue1.x), pl_minf(tValue0.y, tValue1.y), pl_minf(tValue0.z, tValue1.z));
+}
+
+static inline plVec4
+pl_min_vec4(plVec4 tValue0, plVec4 tValue1)
+{
+    return pl_create_vec4(pl_minf(tValue0.x, tValue1.x), pl_minf(tValue0.y, tValue1.y), pl_minf(tValue0.z, tValue1.z), pl_minf(tValue0.w, tValue1.w));
+}
+
+static inline plVec2
+pl_max_vec2(plVec2 tValue0, plVec2 tValue1)
+{
+    return pl_create_vec2(pl_maxf(tValue0.x, tValue1.x), pl_maxf(tValue0.y, tValue1.y));
+}
+
+static inline plVec3
+pl_max_vec3(plVec3 tValue0, plVec3 tValue1)
+{
+    return pl_create_vec3(pl_maxf(tValue0.x, tValue1.x), pl_maxf(tValue0.y, tValue1.y), pl_maxf(tValue0.z, tValue1.z));
+}
+
+static inline plVec4
+pl_max_vec4(plVec4 tValue0, plVec4 tValue1)
+{
+    return pl_create_vec4(pl_maxf(tValue0.x, tValue1.x), pl_maxf(tValue0.y, tValue1.y), pl_maxf(tValue0.z, tValue1.z), pl_maxf(tValue0.w, tValue1.w));
+}
+
+static inline plVec3
+pl_cross_vec3(plVec3 tVec1, plVec3 tVec2)
+{
+    return pl_create_vec3(tVec1.y * tVec2.z - tVec2.y * tVec1.z, tVec1.z * tVec2.x - tVec2.z * tVec1.x, tVec1.x * tVec2.y - tVec2.x * tVec1.y);
+}
+
+static inline float
+pl_dot_vec2(plVec2 tVec1, plVec2 tVec2)
+{
+    return tVec1.x * tVec2.x + tVec1.y * tVec2.y;
+}
+
+static inline float
+pl_dot_vec3(plVec3 tVec1, plVec3 tVec2)
+{
+    return tVec1.x * tVec2.x + tVec1.y * tVec2.y + tVec1.z * tVec2.z;
+}
+
+static inline float
+pl_dot_vec4(plVec4 tVec1, plVec4 tVec2)
+{
+    return tVec1.x * tVec2.x + tVec1.y * tVec2.y + tVec1.z * tVec2.z + tVec1.w * tVec2.w;
+}
+
+static inline plVec2
+pl_add_vec2(plVec2 tVec1, plVec2 tVec2)
+{
+    return pl_create_vec2(tVec1.x + tVec2.x, tVec1.y + tVec2.y);
+}
+
+static inline plVec3
+pl_add_vec3(plVec3 tVec1, plVec3 tVec2)
+{
+    return pl_create_vec3(tVec1.x + tVec2.x, tVec1.y + tVec2.y, tVec1.z + tVec2.z);
+}
+
+#ifdef PL_MATH_USE_SSE
+static inline plVec4
+pl_add_vec4(plVec4 tVec1, plVec4 tVec2)
+{
+    __m128 tOperand0 = _mm_load_ps(tVec1.d);
+    __m128 tOperand1 = _mm_load_ps(tVec2.d);
+    __m128 tSum = _mm_add_ps(tOperand0, tOperand1);
+    plVec4 tResult;
+    _mm_store_ps(tResult.d, tSum);
+    return tResult;
+}
+#elif defined(PL_MATH_USE_NEON)
+static inline plVec4
+pl_add_vec4(plVec4 tVec1, plVec4 tVec2)
+{
+    float32x4_t tOperand0 = vld1q_f32(tVec1.d);
+    float32x4_t tOperand1 = vld1q_f32(tVec2.d);
+    float32x4_t tSum = vaddq_f32(tOperand0, tOperand1);
+    plVec4 tResult;
+    vst1q_f32(tResult.d, tSum);
+    return tResult;
+}
+#else
+static inline plVec4
+pl_add_vec4(plVec4 tVec1, plVec4 tVec2)
+{
+    return pl_create_vec4(tVec1.x + tVec2.x, tVec1.y + tVec2.y, tVec1.z + tVec2.z, tVec1.w + tVec2.w);
+}
+#endif
+
+static inline plVec2
+pl_sub_vec2(plVec2 tVec1, plVec2 tVec2)
+{
+    return pl_create_vec2(tVec1.x - tVec2.x, tVec1.y - tVec2.y);
+}
+
+static inline plVec3
+pl_sub_vec3(plVec3 tVec1, plVec3 tVec2)
+{
+    return pl_create_vec3(tVec1.x - tVec2.x, tVec1.y - tVec2.y, tVec1.z - tVec2.z);
+}
+
+static inline plVec4
+pl_sub_vec4(plVec4 tVec1, plVec4 tVec2)
+{
+    return pl_create_vec4(tVec1.x - tVec2.x, tVec1.y - tVec2.y, tVec1.z - tVec2.z, tVec1.w - tVec2.w);
+}
+
+static inline plVec2
+pl_mul_vec2(plVec2 tVec1, plVec2 tVec2)
+{
+    return pl_create_vec2(tVec1.x * tVec2.x, tVec1.y * tVec2.y);
+}
+
+static inline plVec3
+pl_mul_vec3(plVec3 tVec1, plVec3 tVec2)
+{
+    return pl_create_vec3(tVec1.x * tVec2.x, tVec1.y * tVec2.y, tVec1.z * tVec2.z);
+}
+
+#ifdef PL_MATH_USE_SSE
+static inline plVec4
+pl_mul_vec4(plVec4 tVec1, plVec4 tVec2)
+{
+
+    __m128 tOperand0 = _mm_load_ps(tVec1.d);
+    __m128 tOperand1 = _mm_load_ps(tVec2.d);
+    __m128 tSum = _mm_mul_ps(tOperand0, tOperand1);
+    plVec4 tResult;
+    _mm_store_ps(tResult.d, tSum);
+    return tResult;
+}
+#elif defined(PL_MATH_USE_NEON)
+static inline plVec4
+pl_mul_vec4(plVec4 tVec1, plVec4 tVec2)
+{
+    float32x4_t tOperand0 = vld1q_f32(tVec1.d);
+    float32x4_t tOperand1 = vld1q_f32(tVec2.d);
+    float32x4_t tSum = vmulq_f32(tOperand0, tOperand1);
+    plVec4 tResult;
+    vst1q_f32(tResult.d, tSum);
+    return tResult;
+}
+#else
+static inline plVec4
+pl_mul_vec4(plVec4 tVec1, plVec4 tVec2)
+{
+    return pl_create_vec4(tVec1.x * tVec2.x, tVec1.y * tVec2.y, tVec1.z * tVec2.z, tVec1.w * tVec2.w);
+}
+#endif
+
+static inline plVec2
+pl_div_vec2(plVec2 tVec1, plVec2 tVec2)
+{
+    return pl_create_vec2(tVec1.x / tVec2.x, tVec1.y / tVec2.y);
+}
+
+static inline plVec3
+pl_div_vec3(plVec3 tVec1, plVec3 tVec2)
+{
+    return pl_create_vec3(tVec1.x / tVec2.x, tVec1.y / tVec2.y, tVec1.z / tVec2.z);
+}
+
+static inline plVec4
+pl_div_vec4(plVec4 tVec1, plVec4 tVec2)
+{
+    return pl_create_vec4(tVec1.x / tVec2.x, tVec1.y / tVec2.y, tVec1.z / tVec2.z, tVec1.w / tVec2.w);
+}
+
+static inline plVec2
+pl_mul_vec2_scalarf(plVec2 tVec, float fValue)
+{
+    return pl_create_vec2(fValue * tVec.x, fValue * tVec.y);
+}
+
+static inline plVec3
+pl_mul_vec3_scalarf(plVec3 tVec, float fValue)
+{
+    return pl_create_vec3(fValue * tVec.x, fValue * tVec.y, fValue * tVec.z);
+}
+
+static inline plVec4
+pl_mul_vec4_scalarf(plVec4 tVec, float fValue)
+{
+    return pl_create_vec4(fValue * tVec.x, fValue * tVec.y, fValue * tVec.z, fValue * tVec.w);
+}
+
+static inline plVec2
+pl_div_vec2_scalarf(plVec2 tVec, float fValue)
+{
+    return pl_create_vec2(tVec.x / fValue, tVec.y / fValue);
+}
+
+static inline plVec3
+pl_div_vec3_scalarf(plVec3 tVec, float fValue)
+{
+    return pl_create_vec3(tVec.x / fValue, tVec.y / fValue, tVec.z / fValue);
+}
+
+static inline plVec4
+pl_div_vec4_scalarf(plVec4 tVec, float fValue)
+{
+    return pl_create_vec4(tVec.x / fValue, tVec.y / fValue, tVec.z / fValue, tVec.w / fValue);
+}
+
+static inline plVec2
+pl_div_scalarf_vec2(float fValue, plVec2 tVec)
+{
+    return pl_create_vec2(fValue / tVec.x, fValue / tVec.y);
+}
+
+static inline plVec3
+pl_div_scalarf_vec3(float fValue, plVec3 tVec)
+{
+    return pl_create_vec3(fValue / tVec.x, fValue / tVec.y, fValue / tVec.z);
+}
+
+static inline plVec4
+pl_div_scalarf_vec4(float fValue, plVec4 tVec)
+{
+    return pl_create_vec4(fValue / tVec.x, fValue / tVec.y, fValue / tVec.z, fValue / tVec.w);
+}
+
+static inline plVec2
+pl_norm_vec2(plVec2 tVec)
+{
+    float fLength = pl_length_vec2(tVec);
+    if(fLength > 0)
+        fLength = 1.0f / fLength;
+    return pl_mul_vec2_scalarf(tVec, fLength);
+}
+
+static inline plVec3
+pl_norm_vec3(plVec3 tVec)
+{
+    float fLength = pl_length_vec3(tVec);
+    if(fLength > 0)
+        fLength = 1.0f / fLength;
+    return pl_mul_vec3_scalarf(tVec, fLength);
+}
+
+static inline plVec4
+pl_norm_vec4(plVec4 tVec)
+{
+    float fLength = pl_length_vec4(tVec);
+    if(fLength > 0)
+        fLength = 1.0f / fLength;
+    return pl_mul_vec4_scalarf(tVec, fLength);
+}
+
+static inline float
+pl_mat3_get(const plMat3* ptMat, int iRow, int iCol)
+{
+    return ptMat->col[iCol].d[iRow];
+}
+
+static inline void
+pl_mat3_set(plMat3* ptMat, int iRow, int iCol, float fValue)
+{
+    ptMat->col[iCol].d[iRow] = fValue;
+}
+
+static inline plMat3
+pl_identity_mat3(void)
+{
+    return pl_create_mat3_diag(1.0f, 1.0f, 1.0f);
+}
+
+static inline plMat3
+pl_mat3_transpose(const plMat3* ptMat)
+{
+    plMat3 tResult;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            pl_mat3_set(&tResult, i, j, pl_mat3_get(ptMat, j, i));
+    return tResult;
+}
+
+static inline plMat3
+pl_mat3_invert(const plMat3* ptMat)
+{
+    const plVec3 tA = ptMat->col[0];
+    const plVec3 tB = ptMat->col[1];
+    const plVec3 tC = ptMat->col[2];
+
+    plVec3 tR0 = pl_cross_vec3(tB, tC);
+    plVec3 tR1 = pl_cross_vec3(tC, tA);
+    plVec3 tR2 = pl_cross_vec3(tA, tB);
+    float fInvDet = 1.0f / pl_dot_vec3(tR2, tC);
+
+    plMat3 tResult;
+    tResult.x11 = tR0.x * fInvDet;
+    tResult.x21 = tR1.x * fInvDet;
+    tResult.x31 = tR2.x * fInvDet;
+    tResult.x12 = tR0.y * fInvDet;
+    tResult.x22 = tR1.y * fInvDet;
+    tResult.x32 = tR2.y * fInvDet;
+    tResult.x13 = tR0.z * fInvDet;
+    tResult.x23 = tR1.z * fInvDet;
+    tResult.x33 = tR2.z * fInvDet;
+    return tResult;
+}
+
+static inline plMat3
+pl_mul_scalarf_mat3(float fLeft, const plMat3* ptRight)
+{
+    plMat3 tResult;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            pl_mat3_set(&tResult, i, j, fLeft * pl_mat3_get(ptRight, j, i));
+    return tResult;
+}
+
+static inline plVec3
+pl_mul_mat3_vec3(const plMat3* ptLeft, plVec3 tRight)
+{
+    float fX = ptLeft->col[0].d[0] * tRight.x + ptLeft->col[1].d[0] * tRight.y + ptLeft->col[2].d[0] * tRight.z;
+    float fY = ptLeft->col[0].d[1] * tRight.x + ptLeft->col[1].d[1] * tRight.y + ptLeft->col[2].d[1] * tRight.z;
+    float fZ = ptLeft->col[0].d[2] * tRight.x + ptLeft->col[1].d[2] * tRight.y + ptLeft->col[2].d[2] * tRight.z;
+    return pl_create_vec3(fX, fY, fZ);    
+}
+
+static inline plMat3
+pl_mul_mat3(const plMat3* ptLeft, const plMat3* ptRight)
+{
+    plMat3 tResult;
+
+    // row 0
+    tResult.x11 = ptLeft->col[0].d[0] * ptRight->col[0].d[0] + ptLeft->col[1].d[0] * ptRight->col[0].d[1] + ptLeft->col[2].d[0] * ptRight->col[0].d[2];
+    tResult.x12 = ptLeft->col[0].d[0] * ptRight->col[1].d[0] + ptLeft->col[1].d[0] * ptRight->col[1].d[1] + ptLeft->col[2].d[0] * ptRight->col[1].d[2];
+    tResult.x13 = ptLeft->col[0].d[0] * ptRight->col[2].d[0] + ptLeft->col[1].d[0] * ptRight->col[2].d[1] + ptLeft->col[2].d[0] * ptRight->col[2].d[2];
+
+    // row 1
+    tResult.x21 = ptLeft->col[0].d[1] * ptRight->col[0].d[0] + ptLeft->col[1].d[1] * ptRight->col[0].d[1] + ptLeft->col[2].d[1] * ptRight->col[0].d[2];
+    tResult.x22 = ptLeft->col[0].d[1] * ptRight->col[1].d[0] + ptLeft->col[1].d[1] * ptRight->col[1].d[1] + ptLeft->col[2].d[1] * ptRight->col[1].d[2];
+    tResult.x23 = ptLeft->col[0].d[1] * ptRight->col[2].d[0] + ptLeft->col[1].d[1] * ptRight->col[2].d[1] + ptLeft->col[2].d[1] * ptRight->col[2].d[2];
+
+    // row 2
+    tResult.x31 = ptLeft->col[0].d[2] * ptRight->col[0].d[0] + ptLeft->col[1].d[2] * ptRight->col[0].d[1] + ptLeft->col[2].d[2] * ptRight->col[0].d[2];
+    tResult.x32 = ptLeft->col[0].d[2] * ptRight->col[1].d[0] + ptLeft->col[1].d[2] * ptRight->col[1].d[1] + ptLeft->col[2].d[2] * ptRight->col[1].d[2];
+    tResult.x33 = ptLeft->col[0].d[2] * ptRight->col[2].d[0] + ptLeft->col[1].d[2] * ptRight->col[2].d[1] + ptLeft->col[2].d[2] * ptRight->col[2].d[2];
+
+    return tResult;
+}
+
+static inline plMat3
+pl_add_mat3(const plMat3* ptLeft, const plMat3* ptRight)
+{
+    plMat3 tResult;
+    for(uint32_t i = 0; i < 9; i++)
+        tResult.d[i] = ptLeft->d[i] + ptRight->d[i];
+    return tResult;
+}
+
+static inline float
+pl_mat4_get(const plMat4* ptMat, int iRow, int iCol)
+{
+    return ptMat->col[iCol].d[iRow];
+}
+
+static inline void
+pl_mat4_set(plMat4* ptMat, int iRow, int iCol, float fValue)
+{
+    ptMat->col[iCol].d[iRow] = fValue;
+}
+
+static inline plMat4
+pl_identity_mat4(void)
+{
+    return pl_create_mat4_diag(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+static inline plMat4
+pl_mat4_transpose(const plMat4* ptMat)
+{
+    plMat4 tResult;
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            pl_mat4_set(&tResult, i, j, pl_mat4_get(ptMat, j, i));
+    return tResult;
+}
+
+static inline plMat4
+pl_mat4_invert(const plMat4* ptMat)
+{
+    const plVec3 tA = ptMat->col[0].xyz;
+    const plVec3 tB = ptMat->col[1].xyz;
+    const plVec3 tC = ptMat->col[2].xyz;
+    const plVec3 tD = ptMat->col[3].xyz;
+
+    const float fX = pl_mat4_get(ptMat, 3, 0);
+    const float fY = pl_mat4_get(ptMat, 3, 1);
+    const float fZ = pl_mat4_get(ptMat, 3, 2);
+    const float fW = pl_mat4_get(ptMat, 3, 3);
+
+    plVec3 tS = pl_cross_vec3(tA, tB);
+    plVec3 tT = pl_cross_vec3(tC, tD);
+    plVec3 tU = pl_sub_vec3(pl_mul_vec3_scalarf(tA, fY), pl_mul_vec3_scalarf(tB, fX));
+    plVec3 tV = pl_sub_vec3(pl_mul_vec3_scalarf(tC, fW), pl_mul_vec3_scalarf(tD, fZ));
+
+    const float fInvDet = 1.0f / (pl_dot_vec3(tS, tV) + pl_dot_vec3(tT, tU));
+    tS = pl_mul_vec3_scalarf(tS, fInvDet);
+    tT = pl_mul_vec3_scalarf(tT, fInvDet);
+    tU = pl_mul_vec3_scalarf(tU, fInvDet);
+    tV = pl_mul_vec3_scalarf(tV, fInvDet);
+
+    const plVec3 tR0 = pl_add_vec3(pl_cross_vec3(tB, tV), pl_mul_vec3_scalarf(tT, fY));
+    const plVec3 tR1 = pl_sub_vec3(pl_cross_vec3(tV, tA), pl_mul_vec3_scalarf(tT, fX));
+    const plVec3 tR2 = pl_add_vec3(pl_cross_vec3(tD, tU), pl_mul_vec3_scalarf(tS, fW));
+    const plVec3 tR3 = pl_sub_vec3(pl_cross_vec3(tU, tC), pl_mul_vec3_scalarf(tS, fZ));
+    
+    plMat4 tResult;
+    tResult.x11 = tR0.x;
+    tResult.x21 = tR1.x;
+    tResult.x31 = tR2.x;
+    tResult.x41 = tR3.x;
+    tResult.x12 = tR0.y;
+    tResult.x22 = tR1.y;
+    tResult.x32 = tR2.y;
+    tResult.x42 = tR3.y;
+    tResult.x13 = tR0.z;
+    tResult.x23 = tR1.z;
+    tResult.x33 = tR2.z;
+    tResult.x43 = tR3.z;
+    tResult.x14 = -pl_dot_vec3(tB, tT);
+    tResult.x24 =  pl_dot_vec3(tA, tT);
+    tResult.x34 = -pl_dot_vec3(tD, tS);
+    tResult.x44 =  pl_dot_vec3(tC, tS);
+    return tResult;
+}
+
+static inline plMat4
+pl_mul_scalarf_mat4(float fLeft, const plMat4* ptRight)
+{
+    plMat4 tResult;
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            pl_mat4_set(&tResult, i, j, fLeft * pl_mat4_get(ptRight, j, i));
+    return tResult;
+}
+
+static inline plVec3
+pl_mul_mat4_vec3(const plMat4* ptLeft, plVec3 tRight) 
+{
+    const plVec4 Mov0 = { tRight.x, tRight.x, tRight.x, tRight.x };
+    const plVec4 Mov1 = { tRight.y, tRight.y, tRight.y, tRight.y };
+    const plVec4 Mul0 = pl_mul_vec4(ptLeft->col[0], Mov0);
+    const plVec4 Mul1 = pl_mul_vec4(ptLeft->col[1], Mov1);
+    const plVec4 Add0 = pl_add_vec4(Mul0, Mul1);
+    const plVec4 Mov2 = { tRight.z, tRight.z, tRight.z, tRight.z };
+    const plVec4 Mov3 = { 1.0f, 1.0f, 1.0f, 1.0f };
+    const plVec4 Mul2 = pl_mul_vec4(ptLeft->col[2], Mov2);
+    const plVec4 Mul3 = pl_mul_vec4(ptLeft->col[3], Mov3);
+    const plVec4 Add1 = pl_add_vec4(Mul2, Mul3);
+    const plVec4 Add2 = pl_add_vec4(Add0, Add1);
+    return pl_create_vec3(Add2.x, Add2.y, Add2.z );    
+}
+
+static inline plVec4
+pl_mul_mat4_vec4(const plMat4* ptLeft, plVec4 tRight) 
+{
+    const plVec4 Mov0 = { tRight.x, tRight.x, tRight.x, tRight.x };
+    const plVec4 Mov1 = { tRight.y, tRight.y, tRight.y, tRight.y };
+    const plVec4 Mul0 = pl_mul_vec4(ptLeft->col[0], Mov0);
+    const plVec4 Mul1 = pl_mul_vec4(ptLeft->col[1], Mov1);
+    const plVec4 Add0 = pl_add_vec4(Mul0, Mul1);
+    const plVec4 Mov2 = { tRight.z, tRight.z, tRight.z, tRight.z };
+    const plVec4 Mov3 = { tRight.w, tRight.w, tRight.w, tRight.w };
+    const plVec4 Mul2 = pl_mul_vec4(ptLeft->col[2], Mov2);
+    const plVec4 Mul3 = pl_mul_vec4(ptLeft->col[3], Mov3);
+    const plVec4 Add1 = pl_add_vec4(Mul2, Mul3);
+    return pl_add_vec4(Add0, Add1);
+}
+
+static inline plMat4
+pl_mul_mat4(const plMat4* ptLeft, const plMat4* ptRight)
+{
+    plMat4 tResult;
+
+    // row 0
+    tResult.x11 = ptLeft->col[0].d[0] * ptRight->col[0].d[0] + ptLeft->col[1].d[0] * ptRight->col[0].d[1] + ptLeft->col[2].d[0] * ptRight->col[0].d[2] + ptLeft->col[3].d[0] * ptRight->col[0].d[3];
+    tResult.x12 = ptLeft->col[0].d[0] * ptRight->col[1].d[0] + ptLeft->col[1].d[0] * ptRight->col[1].d[1] + ptLeft->col[2].d[0] * ptRight->col[1].d[2] + ptLeft->col[3].d[0] * ptRight->col[1].d[3];
+    tResult.x13 = ptLeft->col[0].d[0] * ptRight->col[2].d[0] + ptLeft->col[1].d[0] * ptRight->col[2].d[1] + ptLeft->col[2].d[0] * ptRight->col[2].d[2] + ptLeft->col[3].d[0] * ptRight->col[2].d[3];
+    tResult.x14 = ptLeft->col[0].d[0] * ptRight->col[3].d[0] + ptLeft->col[1].d[0] * ptRight->col[3].d[1] + ptLeft->col[2].d[0] * ptRight->col[3].d[2] + ptLeft->col[3].d[0] * ptRight->col[3].d[3];
+
+    // row 1
+    tResult.x21 = ptLeft->col[0].d[1] * ptRight->col[0].d[0] + ptLeft->col[1].d[1] * ptRight->col[0].d[1] + ptLeft->col[2].d[1] * ptRight->col[0].d[2] + ptLeft->col[3].d[1] * ptRight->col[0].d[3];
+    tResult.x22 = ptLeft->col[0].d[1] * ptRight->col[1].d[0] + ptLeft->col[1].d[1] * ptRight->col[1].d[1] + ptLeft->col[2].d[1] * ptRight->col[1].d[2] + ptLeft->col[3].d[1] * ptRight->col[1].d[3];
+    tResult.x23 = ptLeft->col[0].d[1] * ptRight->col[2].d[0] + ptLeft->col[1].d[1] * ptRight->col[2].d[1] + ptLeft->col[2].d[1] * ptRight->col[2].d[2] + ptLeft->col[3].d[1] * ptRight->col[2].d[3];
+    tResult.x24 = ptLeft->col[0].d[1] * ptRight->col[3].d[0] + ptLeft->col[1].d[1] * ptRight->col[3].d[1] + ptLeft->col[2].d[1] * ptRight->col[3].d[2] + ptLeft->col[3].d[1] * ptRight->col[3].d[3];
+
+    // row 2
+    tResult.x31 = ptLeft->col[0].d[2] * ptRight->col[0].d[0] + ptLeft->col[1].d[2] * ptRight->col[0].d[1] + ptLeft->col[2].d[2] * ptRight->col[0].d[2] + ptLeft->col[3].d[2] * ptRight->col[0].d[3];
+    tResult.x32 = ptLeft->col[0].d[2] * ptRight->col[1].d[0] + ptLeft->col[1].d[2] * ptRight->col[1].d[1] + ptLeft->col[2].d[2] * ptRight->col[1].d[2] + ptLeft->col[3].d[2] * ptRight->col[1].d[3];
+    tResult.x33 = ptLeft->col[0].d[2] * ptRight->col[2].d[0] + ptLeft->col[1].d[2] * ptRight->col[2].d[1] + ptLeft->col[2].d[2] * ptRight->col[2].d[2] + ptLeft->col[3].d[2] * ptRight->col[2].d[3];
+    tResult.x34 = ptLeft->col[0].d[2] * ptRight->col[3].d[0] + ptLeft->col[1].d[2] * ptRight->col[3].d[1] + ptLeft->col[2].d[2] * ptRight->col[3].d[2] + ptLeft->col[3].d[2] * ptRight->col[3].d[3];
+
+    // row 3
+    tResult.x41 = ptLeft->col[0].d[3] * ptRight->col[0].d[0] + ptLeft->col[1].d[3] * ptRight->col[0].d[1] + ptLeft->col[2].d[3] * ptRight->col[0].d[2] + ptLeft->col[3].d[3] * ptRight->col[0].d[3];
+    tResult.x42 = ptLeft->col[0].d[3] * ptRight->col[1].d[0] + ptLeft->col[1].d[3] * ptRight->col[1].d[1] + ptLeft->col[2].d[3] * ptRight->col[1].d[2] + ptLeft->col[3].d[3] * ptRight->col[1].d[3];
+    tResult.x43 = ptLeft->col[0].d[3] * ptRight->col[2].d[0] + ptLeft->col[1].d[3] * ptRight->col[2].d[1] + ptLeft->col[2].d[3] * ptRight->col[2].d[2] + ptLeft->col[3].d[3] * ptRight->col[2].d[3];
+    tResult.x44 = ptLeft->col[0].d[3] * ptRight->col[3].d[0] + ptLeft->col[1].d[3] * ptRight->col[3].d[1] + ptLeft->col[2].d[3] * ptRight->col[3].d[2] + ptLeft->col[3].d[3] * ptRight->col[3].d[3];
+
+    return tResult;
+}
+
+static inline plMat4
+pl_add_mat4(const plMat4* ptLeft, const plMat4* ptRight)
+{
+    plMat4 tResult;
+    for(uint32_t i = 0; i < 16; i++)
+        tResult.d[i] = ptLeft->d[i] + ptRight->d[i];
+    return tResult;
+}
+
+static inline plMat4
+pl_mul_mat4_3(const plMat4* ptLeft, const plMat4* ptMiddle, const plMat4* ptRight)
+{
+    plMat4 tIntermediateMatrix = pl_mul_mat4(ptMiddle, ptRight);
+    return pl_mul_mat4(ptLeft, &tIntermediateMatrix);
+}
+
+static inline plMat4
+pl_mat4_translate_xyz(float fX, float fY, float fZ)
+{
+    plMat4 tResult = pl_create_mat4_diag(1.0f, 1.0f, 1.0f, 1.0f);
+    tResult.x14 = fX; tResult.x24 = fY; tResult.x34 = fZ;
+    return tResult;
+}
+
+static inline plMat4
+pl_mat4_translate_vec3(plVec3 tVec)
+{
+    return pl_mat4_translate_xyz(tVec.x, tVec.y, tVec.z);
+}
+
+static inline plMat4
+pl_mat4_rotate_vec3(float fAngle, plVec3 tVec)
+{
+    const float fCos = cosf(fAngle);
+    const float fSin = sinf(fAngle);
+
+    const plVec3 tAxis = pl_norm_vec3(tVec);
+    const plVec3 tTemp = pl_mul_vec3_scalarf(tAxis, 1.0f - fCos);
+
+    const plMat4 tM = pl_identity_mat4();
+    const plMat4 tRotate = {
+        fCos + tTemp.x * tAxis.x,
+        tTemp.x * tAxis.y + fSin * tAxis.z,
+        tTemp.x * tAxis.z - fSin * tAxis.y,
+        0.0f,
+        tTemp.y * tAxis.x - fSin * tAxis.z,
+        fCos + tTemp.y * tAxis.y,
+        tTemp.y * tAxis.z + fSin * tAxis.x,
+        0.0f,
+        tTemp.z * tAxis.x + fSin * tAxis.y,
+        tTemp.z * tAxis.y - fSin * tAxis.x,
+        fCos + tTemp.z * tAxis.z,
+        0.0f
+    };
+
+    return pl_create_mat4_cols(
+        pl_add_vec4(pl_mul_vec4_scalarf(tM.col[0], tRotate.col[0].d[0]), pl_add_vec4(pl_mul_vec4_scalarf(tM.col[1], tRotate.col[0].d[1]), pl_mul_vec4_scalarf(tM.col[2], tRotate.col[0].d[2]))),
+        pl_add_vec4(pl_mul_vec4_scalarf(tM.col[0], tRotate.col[1].d[0]), pl_add_vec4(pl_mul_vec4_scalarf(tM.col[1], tRotate.col[1].d[1]), pl_mul_vec4_scalarf(tM.col[2], tRotate.col[1].d[2]))),
+        pl_add_vec4(pl_mul_vec4_scalarf(tM.col[0], tRotate.col[2].d[0]), pl_add_vec4(pl_mul_vec4_scalarf(tM.col[1], tRotate.col[2].d[1]), pl_mul_vec4_scalarf(tM.col[2], tRotate.col[2].d[2]))),
+        tM.col[3]); 
+}
+
+static inline plMat4
+pl_mat4_rotate_xyz(float fAngle, float fX, float fY, float fZ)
+{
+    return pl_mat4_rotate_vec3(fAngle, pl_create_vec3(fX, fY, fZ));
+}
+
+static inline plMat4
+pl_mat4_scale_xyz(float fX, float fY, float fZ)
+{
+    return pl_create_mat4_diag(fX, fY, fZ, 1.0f);
+}
+
+static inline plMat4
+pl_mat4_scale_vec3(plVec3 tVec)
+{
+    return pl_mat4_scale_xyz(tVec.x, tVec.y, tVec.z);
+}
+
+static inline plMat4
+pl_mat4_rotate_quat(plVec4 tQ)
+{
+    const float x2 = tQ.x * tQ.x;
+    const float y2 = tQ.y * tQ.y;
+    const float z2 = tQ.z * tQ.z;
+    const float xy = tQ.x * tQ.y;
+    const float xz = tQ.x * tQ.z;
+    const float yz = tQ.y * tQ.z;
+    const float wx = tQ.w * tQ.x;
+    const float wy = tQ.w * tQ.y;
+    const float wz = tQ.w * tQ.z;
+
+    plMat4 tResult = pl_create_mat4_diag(0.0f, 0.0f, 0.0f, 0.0f);
+    tResult.col[0].x = 1.0f - 2.0f * (y2 + z2);
+    tResult.col[0].y = 2.0f * (xy + wz);
+    tResult.col[0].z = 2.0f * (xz - wy);
+
+    tResult.col[1].x = 2.0f * (xy - wz);
+    tResult.col[1].y = 1.0f - 2.0f * (x2 + z2);
+    tResult.col[1].z = 2.0f * (yz + wx);
+
+    tResult.col[2].x = 2.0f * (xz + wy);
+    tResult.col[2].y = 2.0f * (yz - wx);
+    tResult.col[2].z = 1.0f - 2.0f * (x2 + y2);
+
+    tResult.col[3].w = 1.0f;
+
+    return tResult;
+}
+
+static inline plMat4
+pl_rotation_translation_scale(plVec4 tQ, plVec3 tV, plVec3 tS)
+{
+
+    const plMat4 tScale = pl_mat4_scale_vec3(tS);
+    const plMat4 tTranslation = pl_mat4_translate_vec3(tV);
+    const plMat4 tRotation = pl_mat4_rotate_quat(tQ);
+
+    plMat4 tResult0 = pl_mul_mat4(&tRotation, &tScale);
+    tResult0 = pl_mul_mat4(&tTranslation, &tResult0);
+    return tResult0;
+}
+
+static inline plMat4
+pl_mat4t_invert(const plMat4* ptMat)
+{
+    const plVec3 tA = ptMat->col[0].xyz;
+    const plVec3 tB = ptMat->col[1].xyz;
+    const plVec3 tC = ptMat->col[2].xyz;
+    const plVec3 tD = ptMat->col[3].xyz;
+
+    plVec3 tS = pl_cross_vec3(tA, tB);
+    plVec3 tT = pl_cross_vec3(tC, tD);
+
+    const float fInvDet = 1.0f / pl_dot_vec3(tS, tC);
+    tS = pl_mul_vec3_scalarf(tS, fInvDet);
+    tT = pl_mul_vec3_scalarf(tT, fInvDet);
+
+    const plVec3 tV = pl_mul_vec3_scalarf(tC, fInvDet);
+    const plVec3 tR0 = pl_cross_vec3(tB, tV);
+    const plVec3 tR1 = pl_cross_vec3(tV, tA);
+    
+    plMat4 tResult;
+    tResult.x11 = tR0.x;
+    tResult.x21 = tR1.x;
+    tResult.x31 = tS.x;
+    tResult.x41 = 0.0f;
+    tResult.x12 = tR0.y;
+    tResult.x22 = tR1.y;
+    tResult.x32 = tS.y;
+    tResult.x42 = 0.0f;
+    tResult.x13 = tR0.z;
+    tResult.x23 = tR1.z;
+    tResult.x33 = tS.z;
+    tResult.x43 = 0.0f;
+    tResult.x14 = -pl_dot_vec3(tB, tT);
+    tResult.x24 = pl_dot_vec3(tA, tT);
+    tResult.x34 = -pl_dot_vec3(tD, tS);
+    tResult.x44 = 1.0f;
+    return tResult;
+}
+
+static inline plMat4
+pl_mul_mat4t(const plMat4* ptLeft, const plMat4* ptRight)
+{
+    plMat4 tResult = pl_create_mat4_diag(0.0f, 0.0f, 0.0f, 1.0f);
+
+    // row 0
+    tResult.x11 = ptLeft->x11 * ptRight->x11 + ptLeft->x12 * ptRight->x21 + ptLeft->x13 * ptRight->x31;
+    tResult.x12 = ptLeft->x11 * ptRight->x12 + ptLeft->x12 * ptRight->x22 + ptLeft->x13 * ptRight->x32;
+    tResult.x13 = ptLeft->x11 * ptRight->x13 + ptLeft->x12 * ptRight->x23 + ptLeft->x13 * ptRight->x33;
+    tResult.x14 = ptLeft->x11 * ptRight->x14 + ptLeft->x12 * ptRight->x24 + ptLeft->x13 * ptRight->x34 + ptLeft->x14;
+
+    // row 1
+    tResult.x21 = ptLeft->x21 * ptRight->x11 + ptLeft->x22 * ptRight->x21 + ptLeft->x23 * ptRight->x31;
+    tResult.x22 = ptLeft->x21 * ptRight->x12 + ptLeft->x22 * ptRight->x22 + ptLeft->x23 * ptRight->x32;
+    tResult.x23 = ptLeft->x21 * ptRight->x13 + ptLeft->x22 * ptRight->x23 + ptLeft->x23 * ptRight->x33;
+    tResult.x24 = ptLeft->x21 * ptRight->x14 + ptLeft->x22 * ptRight->x24 + ptLeft->x23 * ptRight->x34 + ptLeft->x24;
+
+    // row 2
+    tResult.x31 = ptLeft->x31 * ptRight->x11 + ptLeft->x32 * ptRight->x21 + ptLeft->x33 * ptRight->x31;
+    tResult.x32 = ptLeft->x31 * ptRight->x12 + ptLeft->x32 * ptRight->x22 + ptLeft->x33 * ptRight->x32;
+    tResult.x33 = ptLeft->x31 * ptRight->x13 + ptLeft->x32 * ptRight->x23 + ptLeft->x33 * ptRight->x33;
+    tResult.x34 = ptLeft->x31 * ptRight->x14 + ptLeft->x32 * ptRight->x24 + ptLeft->x33 * ptRight->x34 + ptLeft->x34;
+
+    return tResult;
+}
+
+static inline plVec3
+pl_mul_quat_vec3(plVec3 tV, plVec4 tQ)
+{
+    return pl_add_vec3(pl_add_vec3(pl_mul_vec3_scalarf(tV, tQ.w * tQ.w - (tQ.x * tQ.x + tQ.y * tQ.y + tQ.z * tQ.z)), pl_mul_vec3_scalarf(tQ.xyz, pl_dot_vec3(tV, tQ.xyz) * 2.0f)), pl_mul_vec3_scalarf(pl_cross_vec3(tQ.xyz, tV), tQ.w * 2.0f));
+}
+
+static inline plVec4
+pl_mul_quat(plVec4 tQ1, plVec4 tQ2)
+{
+    return pl_create_vec4(tQ1.w * tQ2.x + tQ1.x * tQ2.w + tQ1.y * tQ2.z - tQ1.z * tQ2.y, tQ1.w * tQ2.y - tQ1.x * tQ2.z + tQ1.y * tQ2.w + tQ1.z * tQ2.x, tQ1.w * tQ2.z + tQ1.x * tQ2.y - tQ1.y * tQ2.x + tQ1.z * tQ2.w, tQ1.w * tQ2.w - tQ1.x * tQ2.x - tQ1.y * tQ2.y - tQ1.z * tQ2.z);
+}
+
+static inline plVec4
+pl_quat_rotation(float fAngle, float fX, float fY, float fZ)
+{
+    const float fSin2 = sinf(0.5f * fAngle);
+    return pl_create_vec4(fSin2 * fX, fSin2 * fY, fSin2 * fZ, cosf(0.5f * fAngle));
+}
+
+static inline plVec4
+pl_quat_rotation_vec3(float fAngle, plVec3 tAxis)
+{
+    return pl_quat_rotation(fAngle, tAxis.x, tAxis.y, tAxis.z);
+}
+
+static inline plVec4
+pl_norm_quat(plVec4 tQ)
+{
+    return pl_norm_vec4(tQ);
+}
+
+static inline plVec4
+pl_quat_slerp(plVec4 tQ1, plVec4 tQ2, float fT)
+{
+
+	// from https://glmatrix.net/docs/quat.js.html
+	plVec4 tQn1 = pl_norm_vec4(tQ1);
+	plVec4 tQn2 = pl_norm_vec4(tQ2);
+
+	plVec4 tResult;
+
+	float fAx = tQn1.x;
+	float fAy = tQn1.y;
+	float fAz = tQn1.z;
+	float fAw = tQn1.w;
+
+	float fBx = tQn2.x;
+	float fBy = tQn2.y;
+	float fBz = tQn2.z;
+	float fBw = tQn2.w;
+
+	float fOmega = 0.0f;
+	float fCosom = fAx * fBx + fAy * fBy + fAz * fBz + fAw * fBw;
+	float fSinom = 0.0f;
+	float fScale0 = 0.0f;
+	float fScale1 = 0.0f;
+
+	// adjust signs (if necessary)
+	if (fCosom < 0.0f) 
+	{
+		fCosom = -fCosom;
+		fBx = -fBx;
+		fBy = -fBy;
+		fBz = -fBz;
+		fBw = -fBw;
+	}
+
+	// calculate coefficients
+	if (1.0f - fCosom > 0.000001f)
+	{
+		// standard case (slerp)
+		fOmega = acosf(fCosom);
+		fSinom = sinf(fOmega);
+		fScale0 = sinf((1.0f - fT) * fOmega) / fSinom;
+		fScale1 = sinf(fT * fOmega) / fSinom;
+	}
+	else 
+	{
+		// "from" and "to" quaternions are very close
+		//  ... so we can do a linear interpolation
+		fScale0 = 1.0f - fT;
+		fScale1 = fT;
+	}
+
+	// calculate final values
+	tResult.d[0] = fScale0 * fAx + fScale1 * fBx;
+	tResult.d[1] = fScale0 * fAy + fScale1 * fBy;
+	tResult.d[2] = fScale0 * fAz + fScale1 * fBz;
+	tResult.d[3] = fScale0 * fAw + fScale1 * fBw;
+
+	tResult = pl_norm_vec4(tResult);
+
+	return tResult;
+}
+
+static inline float
+pl_quat_decompose(plVec4 tQ, plVec3* ptAxisOut)
+{
+    const float fAngle = 2.0f * acosf(tQ.w);
+    if(fAngle != 0.0f)
+    { 
+        const float fSin = sinf(0.5f * fAngle);
+        ptAxisOut->x = tQ.x / fSin;
+        ptAxisOut->y = tQ.y / fSin;
+        ptAxisOut->z = tQ.z / fSin;
+    }
+    return fAngle;
+}
+
+static inline void
+pl_decompose_matrix(const plMat4* ptM, plVec3* ptS, plVec4* ptQ, plVec3* ptT)
+{
+    // method borrowed from blender source
+
+    // caller must ensure matrices aren't negative for valid results
+
+    *ptT = ptM->col[3].xyz;
+
+    ptS->x = pl_length_vec3(ptM->col[0].xyz);
+    ptS->y = pl_length_vec3(ptM->col[1].xyz);
+    ptS->z = pl_length_vec3(ptM->col[2].xyz);
+
+    // method outlined by Mike Day, ref: https://math.stackexchange.com/a/3183435/220949
+    // with an additional `sqrtf(..)` for higher precision result.
+
+    plMat4 tMat = pl_create_mat4_diag(0.0f, 0.0f, 0.0f, 0.0f);
+    tMat.col[0] = pl_norm_vec4(ptM->col[0]);
+    tMat.col[1] = pl_norm_vec4(ptM->col[1]);
+    tMat.col[2] = pl_norm_vec4(ptM->col[2]);
+
+    if (tMat.col[2].d[2] < 0.0f)
+    {
+        if (tMat.col[0].d[0] > tMat.col[1].d[1])
+        {
+            const float fTrace = 1.0f + tMat.col[0].d[0] - tMat.col[1].d[1] - tMat.col[2].d[2];
+            float fS = 2.0f * sqrtf(fTrace);
+            if (tMat.col[1].d[2] < tMat.col[2].d[1]) // ensure W is non-negative for a canonical result
+                fS = -fS;
+            ptQ->d[0] = 0.25f * fS;
+            fS = 1.0f / fS;
+            ptQ->d[3] = (tMat.col[1].d[2] - tMat.col[2].d[1]) * fS;
+            ptQ->d[1] = (tMat.col[0].d[1] + tMat.col[1].d[0]) * fS;
+            ptQ->d[2] = (tMat.col[2].d[0] + tMat.col[0].d[2]) * fS;
+            if ((fTrace == 1.0f) && (ptQ->d[3] == 0.0f && ptQ->d[1] == 0.0f && ptQ->d[2] == 0.0f)) // avoids the need to normalize the degenerate case
+                ptQ->d[0] = 1.0f;
+        }
+        else
+        {
+            const float fTrace = 1.0f - tMat.col[0].d[0] + tMat.col[1].d[1] - tMat.col[2].d[2];
+            float fS = 2.0f * sqrtf(fTrace);
+            if (tMat.col[2].d[0] < tMat.col[0].d[2]) // ensure W is non-negative for a canonical result
+                fS = -fS;
+            ptQ->d[1] = 0.25f * fS;
+            fS = 1.0f / fS;
+            ptQ->d[3] = (tMat.col[2].d[0] - tMat.col[0].d[2]) * fS;
+            ptQ->d[0] = (tMat.col[0].d[1] + tMat.col[1].d[0]) * fS;
+            ptQ->d[2] = (tMat.col[1].d[2] + tMat.col[2].d[1]) * fS;
+            if ((fTrace == 1.0f) && (ptQ->d[3] == 0.0f && ptQ->d[0] == 0.0f && ptQ->d[2] == 0.0f)) // avoids the need to normalize the degenerate case
+                ptQ->d[1] = 1.0f;
+        }
+    }
+    else
+    {
+        if (tMat.col[0].d[0] < -tMat.col[1].d[1])
+        {
+            const float fTrace = 1.0f - tMat.col[0].d[0] - tMat.col[1].d[1] + tMat.col[2].d[2];
+            float fS = 2.0f * sqrtf(fTrace);
+            if (tMat.col[0].d[1] < tMat.col[1].d[0]) // ensure W is non-negative for a canonical result
+                fS = -fS;
+            ptQ->d[2] = 0.25f * fS;
+            fS = 1.0f / fS;
+            ptQ->d[3] = (tMat.col[0].d[1] - tMat.col[1].d[0]) * fS;
+            ptQ->d[0] = (tMat.col[2].d[0] + tMat.col[0].d[2]) * fS;
+            ptQ->d[1] = (tMat.col[1].d[2] + tMat.col[2].d[1]) * fS;
+            if ((fTrace == 1.0f) && (ptQ->d[3] == 0.0f && ptQ->d[0] == 0.0f && ptQ->d[1] == 0.0f)) // avoids the need to normalize the degenerate case
+                ptQ->d[2] = 1.0f;
+        }
+        else
+        {
+            // note: a zero matrix will fall through to this block,
+            // needed so a zero scaled matrices to return a quaternion without rotation
+            const float fTrace = 1.0f + tMat.col[0].d[0] + tMat.col[1].d[1] + tMat.col[2].d[2];
+            float fS = 2.0f * sqrtf(fTrace);
+            ptQ->d[3] = 0.25f * fS;
+            fS = 1.0f / fS;
+            ptQ->d[0] = (tMat.col[1].d[2] - tMat.col[2].d[1]) * fS;
+            ptQ->d[1] = (tMat.col[2].d[0] - tMat.col[0].d[2]) * fS;
+            ptQ->d[2] = (tMat.col[0].d[1] - tMat.col[1].d[0]) * fS;
+            if ((fTrace == 1.0f) && (ptQ->d[0] == 0.0f && ptQ->d[1] == 0.0f && ptQ->d[2] == 0.0f)) // avoids the need to normalize the degenerate case
+                ptQ->d[3] = 1.0f;
+        }
+    }
+
+    PL_ASSERT(!(ptQ->d[3] < 0.0f));
+}
+
+static inline double
+pl_length_sqr_vec2_d(plVec2d tVec)
+{ 
+    return pl_square(tVec.x) + pl_square(tVec.y);
+}
+
+static inline double
+pl_length_sqr_vec3_d(plVec3d tVec)
+{ 
+    return pl_square(tVec.x) + pl_square(tVec.y) + pl_square(tVec.z);
+}
+
+static inline double
+pl_length_sqr_vec4_d(plVec4d tVec)
+{ 
+    return pl_square(tVec.x) + pl_square(tVec.y) + pl_square(tVec.z) + pl_square(tVec.w);
+}
+
+static inline double
+pl_length_vec2_d(plVec2d tVec)
+{ 
+    return sqrt(pl_length_sqr_vec2_d(tVec));
+}
+
+static inline double 
+pl_length_vec3_d(plVec3d tVec)
+{ 
+    return sqrt(pl_length_sqr_vec3_d(tVec));
+}
+
+static inline double
+pl_length_vec4_d(plVec4d tVec)
+{ 
+    return sqrt(pl_length_sqr_vec4_d(tVec));
+}
+
+static inline plVec2d
+pl_floor_vec2_d(plVec2d tVec)
+{ 
+    return pl_create_vec2_d(floor(tVec.x), floor(tVec.y));
+}
+
+static inline plVec3d
+pl_floor_vec3_d(plVec3d tVec)
+{ 
+    return pl_create_vec3_d(floor(tVec.x), floor(tVec.y), floor(tVec.z));
+}
+
+static inline plVec4d
+pl_floor_vec4_d(plVec4d tVec)
+{ 
+    return pl_create_vec4_d(floor(tVec.x), floor(tVec.y), floor(tVec.z), floor(tVec.w));
+}
+
+static inline plVec2d
+pl_lerp_vec2_d(plVec2d t0, plVec2d t1, double dAmount)
+{
+    return pl_create_vec2_d(t0.x + (t1.x - t0.x) * dAmount, t0.y + (t1.y - t0.y) * dAmount);
+}
+
+static inline plVec3d
+pl_lerp_vec3_d(plVec3d t0, plVec3d t1, double dAmount)
+{
+    return pl_create_vec3_d(t0.x + (t1.x - t0.x) * dAmount, t0.y + (t1.y - t0.y) * dAmount, t0.z + (t1.z - t0.z) * dAmount);
+}
+
+static inline plVec4d
+pl_lerp_vec4_d(plVec4d t0, plVec4d t1, double dAmount)
+{
+    return pl_create_vec4_d(t0.x + (t1.x - t0.x) * dAmount, t0.y + (t1.y - t0.y) * dAmount, t0.z + (t1.z - t0.z) * dAmount, t0.w + (t1.w - t0.w) * dAmount);
+}
+
+static inline plVec2d
+pl_clamp_vec2_d(plVec2d tMin, plVec2d tValue, plVec2d tMax)
+{
+    return pl_create_vec2_d(pl_clampd(tMin.x, tValue.x, tMax.x), pl_clampd(tMin.y, tValue.y, tMax.y));
+}
+
+static inline plVec3d
+pl_clamp_vec3_d(plVec3d tMin, plVec3d tValue, plVec3d tMax)
+{
+    return pl_create_vec3_d(pl_clampd(tMin.x, tValue.x, tMax.x), pl_clampd(tMin.y, tValue.y, tMax.y), pl_clampd(tMax.z, tValue.z, tMax.z));
+}
+
+static inline plVec4d
+pl_clamp_vec4_d(plVec4d tMin, plVec4d tValue, plVec4d tMax)
+{
+    return pl_create_vec4_d(pl_clampd(tMin.x, tValue.x, tMax.x), pl_clampd(tMin.y, tValue.y, tMax.y), pl_clampd(tMax.z, tValue.z, tMax.z), pl_clampd(tMax.w, tValue.w, tMax.w));
+}
+
+static inline plVec2d
+pl_min_vec2_d(plVec2d tValue0, plVec2d tValue1)
+{
+    return pl_create_vec2_d(pl_mind(tValue0.x, tValue1.x), pl_mind(tValue0.y, tValue1.y));
+}
+
+static inline plVec3d
+pl_min_vec3_d(plVec3d tValue0, plVec3d tValue1)
+{
+    return pl_create_vec3_d(pl_mind(tValue0.x, tValue1.x), pl_mind(tValue0.y, tValue1.y), pl_mind(tValue0.z, tValue1.z));
+}
+
+static inline plVec4d
+pl_min_vec4_d(plVec4d tValue0, plVec4d tValue1)
+{
+    return pl_create_vec4_d(pl_mind(tValue0.x, tValue1.x), pl_mind(tValue0.y, tValue1.y), pl_mind(tValue0.z, tValue1.z), pl_mind(tValue0.w, tValue1.w));
+}
+
+static inline plVec2d
+pl_max_vec2_d(plVec2d tValue0, plVec2d tValue1)
+{
+    return pl_create_vec2_d(pl_maxd(tValue0.x, tValue1.x), pl_maxd(tValue0.y, tValue1.y));
+}
+
+static inline plVec3d
+pl_max_vec3_d(plVec3d tValue0, plVec3d tValue1)
+{
+    return pl_create_vec3_d(pl_maxd(tValue0.x, tValue1.x), pl_maxd(tValue0.y, tValue1.y), pl_maxd(tValue0.z, tValue1.z));
+}
+
+static inline plVec4d
+pl_max_vec4_d(plVec4d tValue0, plVec4d tValue1)
+{
+    return pl_create_vec4_d(pl_maxd(tValue0.x, tValue1.x), pl_maxd(tValue0.y, tValue1.y), pl_maxd(tValue0.z, tValue1.z), pl_maxd(tValue0.w, tValue1.w));
+}
+
+static inline plVec3d
+pl_cross_vec3_d(plVec3d tVec1, plVec3d tVec2)
+{
+    return pl_create_vec3_d(tVec1.y * tVec2.z - tVec2.y * tVec1.z, tVec1.z * tVec2.x - tVec2.z * tVec1.x, tVec1.x * tVec2.y - tVec2.x * tVec1.y);
+}
+
+static inline double
+pl_dot_vec2_d(plVec2d tVec1, plVec2d tVec2)
+{
+    return tVec1.x * tVec2.x + tVec1.y * tVec2.y;
+}
+
+static inline double
+pl_dot_vec3_d(plVec3d tVec1, plVec3d tVec2)
+{
+    return tVec1.x * tVec2.x + tVec1.y * tVec2.y + tVec1.z * tVec2.z;
+}
+
+static inline double
+pl_dot_vec4_d(plVec4d tVec1, plVec4d tVec2)
+{
+    return tVec1.x * tVec2.x + tVec1.y * tVec2.y + tVec1.z * tVec2.z + tVec1.w * tVec2.w;
+}
+
+static inline plVec2d
+pl_add_vec2_d(plVec2d tVec1, plVec2d tVec2)
+{
+    return pl_create_vec2_d(tVec1.x + tVec2.x, tVec1.y + tVec2.y);
+}
+
+static inline plVec3d
+pl_add_vec3_d(plVec3d tVec1, plVec3d tVec2)
+{
+    return pl_create_vec3_d(tVec1.x + tVec2.x, tVec1.y + tVec2.y, tVec1.z + tVec2.z);
+}
+
+static inline plVec4d
+pl_add_vec4_d(plVec4d tVec1, plVec4d tVec2)
+{
+    return pl_create_vec4_d(tVec1.x + tVec2.x, tVec1.y + tVec2.y, tVec1.z + tVec2.z, tVec1.w + tVec2.w);
+}
+
+static inline plVec2d
+pl_sub_vec2_d(plVec2d tVec1, plVec2d tVec2)
+{
+    return pl_create_vec2_d(tVec1.x - tVec2.x, tVec1.y - tVec2.y);
+}
+
+static inline plVec3d
+pl_sub_vec3_d(plVec3d tVec1, plVec3d tVec2)
+{
+    return pl_create_vec3_d(tVec1.x - tVec2.x, tVec1.y - tVec2.y, tVec1.z - tVec2.z);
+}
+
+static inline plVec4d
+pl_sub_vec4_d(plVec4d tVec1, plVec4d tVec2)
+{
+    return pl_create_vec4_d(tVec1.x - tVec2.x, tVec1.y - tVec2.y, tVec1.z - tVec2.z, tVec1.w - tVec2.w);
+}
+
+static inline plVec2d
+pl_mul_vec2_d(plVec2d tVec1, plVec2d tVec2)
+{
+    return pl_create_vec2_d(tVec1.x * tVec2.x, tVec1.y * tVec2.y);
+}
+
+static inline plVec3d
+pl_mul_vec3_d(plVec3d tVec1, plVec3d tVec2)
+{
+    return pl_create_vec3_d(tVec1.x * tVec2.x, tVec1.y * tVec2.y, tVec1.z * tVec2.z);
+}
+
+static inline plVec4d
+pl_mul_vec4_d(plVec4d tVec1, plVec4d tVec2)
+{
+    return pl_create_vec4_d(tVec1.x * tVec2.x, tVec1.y * tVec2.y, tVec1.z * tVec2.z, tVec1.w * tVec2.w);
+}
+
+static inline plVec2d
+pl_div_vec2_d(plVec2d tVec1, plVec2d tVec2)
+{
+    return pl_create_vec2_d(tVec1.x / tVec2.x, tVec1.y / tVec2.y);
+}
+
+static inline plVec3d
+pl_div_vec3_d(plVec3d tVec1, plVec3d tVec2)
+{
+    return pl_create_vec3_d(tVec1.x / tVec2.x, tVec1.y / tVec2.y, tVec1.z / tVec2.z);
+}
+
+static inline plVec4d
+pl_div_vec4_d(plVec4d tVec1, plVec4d tVec2)
+{
+    return pl_create_vec4_d(tVec1.x / tVec2.x, tVec1.y / tVec2.y, tVec1.z / tVec2.z, tVec1.w / tVec2.w);
+}
+
+static inline plVec2d
+pl_mul_vec2_scalard(plVec2d tVec, double dValue)
+{
+    return pl_create_vec2_d(dValue * tVec.x, dValue * tVec.y);
+}
+
+static inline plVec3d
+pl_mul_vec3_scalard(plVec3d tVec, double dValue)
+{
+    return pl_create_vec3_d(dValue * tVec.x, dValue * tVec.y, dValue * tVec.z);
+}
+
+static inline plVec4d
+pl_mul_vec4_scalard(plVec4d tVec, double dValue)
+{
+    return pl_create_vec4_d(dValue * tVec.x, dValue * tVec.y, dValue * tVec.z, dValue * tVec.w);
+}
+
+static inline plVec2d
+pl_div_vec2_scalard(plVec2d tVec, double dValue)
+{
+    return pl_create_vec2_d(tVec.x / dValue, tVec.y / dValue);
+}
+
+static inline plVec3d
+pl_div_vec3_scalard(plVec3d tVec, double dValue)
+{
+    return pl_create_vec3_d(tVec.x / dValue, tVec.y / dValue, tVec.z / dValue);
+}
+
+static inline plVec4d
+pl_div_vec4_scalard(plVec4d tVec, double dValue)
+{
+    return pl_create_vec4_d(tVec.x / dValue, tVec.y / dValue, tVec.z / dValue, tVec.w / dValue);
+}
+
+static inline plVec2d
+pl_div_scalar_vec2(double dValue, plVec2d tVec)
+{
+    return pl_create_vec2_d(dValue / tVec.x, dValue / tVec.y);
+}
+
+static inline plVec3d
+pl_div_scalar_vec3(double dValue, plVec3d tVec)
+{
+    return pl_create_vec3_d(dValue / tVec.x, dValue / tVec.y, dValue / tVec.z);
+}
+
+static inline plVec4d
+pl_div_scalar_vec4(double dValue, plVec4d tVec)
+{
+    return pl_create_vec4_d(dValue / tVec.x, dValue / tVec.y, dValue / tVec.z, dValue / tVec.w);
+}
+
+static inline plVec2d
+pl_norm_vec2_d(plVec2d tVec)
+{
+    double dLength = pl_length_vec2_d(tVec);
+    if(dLength > 0)
+        dLength = 1.0 / dLength;
+    return pl_mul_vec2_scalard(tVec, dLength);
+}
+
+static inline plVec3d
+pl_norm_vec3_d(plVec3d tVec)
+{
+    double dLength = pl_length_vec3_d(tVec);
+    if(dLength > 0)
+        dLength = 1.0 / dLength;
+    return pl_mul_vec3_scalard(tVec, dLength);
+}
+
+static inline plVec4d
+pl_norm_vec4_d(plVec4d tVec)
+{
+    double dLength = pl_length_vec4_d(tVec);
+    if(dLength > 0)
+        dLength = 1.0 / dLength;
+    return pl_mul_vec4_scalard(tVec, dLength);
+}
+
+static inline double
+pl_mat3_get_d(const plMat3d* ptMat, int iRow, int iCol)
+{
+    return ptMat->col[iCol].d[iRow];
+}
+
+static inline void
+pl_mat3_set_d(plMat3d* ptMat, int iRow, int iCol, double fValue)
+{
+    ptMat->col[iCol].d[iRow] = fValue;
+}
+
+static inline plMat3d
+pl_identity_mat3_d(void)
+{
+    return pl_create_mat3_diag_d(1.0, 1.0, 1.0);
+}
+
+static inline plMat3d
+pl_mat3_transpose_d(const plMat3d* ptMat)
+{
+    plMat3d tResult;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            pl_mat3_set_d(&tResult, i, j, pl_mat3_get_d(ptMat, j, i));
+    return tResult;
+}
+
+static inline plMat3d
+pl_mat3_invert_d(const plMat3d* ptMat)
+{
+    const plVec3d tA = ptMat->col[0];
+    const plVec3d tB = ptMat->col[1];
+    const plVec3d tC = ptMat->col[2];
+
+    plVec3d tR0 = pl_cross_vec3_d(tB, tC);
+    plVec3d tR1 = pl_cross_vec3_d(tC, tA);
+    plVec3d tR2 = pl_cross_vec3_d(tA, tB);
+    double dInvDet = 1.0 / pl_dot_vec3_d(tR2, tC);
+
+    plMat3d tResult;
+    tResult.x11 = tR0.x * dInvDet;
+    tResult.x21 = tR1.x * dInvDet;
+    tResult.x31 = tR2.x * dInvDet;
+    tResult.x12 = tR0.y * dInvDet;
+    tResult.x22 = tR1.y * dInvDet;
+    tResult.x32 = tR2.y * dInvDet;
+    tResult.x13 = tR0.z * dInvDet;
+    tResult.x23 = tR1.z * dInvDet;
+    tResult.x33 = tR2.z * dInvDet;
+    return tResult;
+}
+
+static inline plMat3d
+pl_mul_scalar_mat3(double dLeft, const plMat3d* ptRight)
+{
+    plMat3d tResult;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            pl_mat3_set_d(&tResult, i, j, dLeft * pl_mat3_get_d(ptRight, j, i));
+    return tResult;
+}
+
+static inline plVec3d
+pl_mul_mat3_vec3_d(const plMat3d* ptLeft, plVec3d tRight)
+{
+    double dX = ptLeft->col[0].d[0] * tRight.x + ptLeft->col[1].d[0] * tRight.y + ptLeft->col[2].d[0] * tRight.z;
+    double dY = ptLeft->col[0].d[1] * tRight.x + ptLeft->col[1].d[1] * tRight.y + ptLeft->col[2].d[1] * tRight.z;
+    double dZ = ptLeft->col[0].d[2] * tRight.x + ptLeft->col[1].d[2] * tRight.y + ptLeft->col[2].d[2] * tRight.z;
+    return pl_create_vec3_d(dX, dY, dZ);    
+}
+
+static inline plMat3d
+pl_mul_mat3_d(const plMat3d* ptLeft, const plMat3d* ptRight)
+{
+    plMat3d tResult;
+
+    // row 0
+    tResult.x11 = ptLeft->col[0].d[0] * ptRight->col[0].d[0] + ptLeft->col[1].d[0] * ptRight->col[0].d[1] + ptLeft->col[2].d[0] * ptRight->col[0].d[2];
+    tResult.x12 = ptLeft->col[0].d[0] * ptRight->col[1].d[0] + ptLeft->col[1].d[0] * ptRight->col[1].d[1] + ptLeft->col[2].d[0] * ptRight->col[1].d[2];
+    tResult.x13 = ptLeft->col[0].d[0] * ptRight->col[2].d[0] + ptLeft->col[1].d[0] * ptRight->col[2].d[1] + ptLeft->col[2].d[0] * ptRight->col[2].d[2];
+
+    // row 1
+    tResult.x21 = ptLeft->col[0].d[1] * ptRight->col[0].d[0] + ptLeft->col[1].d[1] * ptRight->col[0].d[1] + ptLeft->col[2].d[1] * ptRight->col[0].d[2];
+    tResult.x22 = ptLeft->col[0].d[1] * ptRight->col[1].d[0] + ptLeft->col[1].d[1] * ptRight->col[1].d[1] + ptLeft->col[2].d[1] * ptRight->col[1].d[2];
+    tResult.x23 = ptLeft->col[0].d[1] * ptRight->col[2].d[0] + ptLeft->col[1].d[1] * ptRight->col[2].d[1] + ptLeft->col[2].d[1] * ptRight->col[2].d[2];
+
+    // row 2
+    tResult.x31 = ptLeft->col[0].d[2] * ptRight->col[0].d[0] + ptLeft->col[1].d[2] * ptRight->col[0].d[1] + ptLeft->col[2].d[2] * ptRight->col[0].d[2];
+    tResult.x32 = ptLeft->col[0].d[2] * ptRight->col[1].d[0] + ptLeft->col[1].d[2] * ptRight->col[1].d[1] + ptLeft->col[2].d[2] * ptRight->col[1].d[2];
+    tResult.x33 = ptLeft->col[0].d[2] * ptRight->col[2].d[0] + ptLeft->col[1].d[2] * ptRight->col[2].d[1] + ptLeft->col[2].d[2] * ptRight->col[2].d[2];
+
+    return tResult;
+}
+
+static inline plMat3d
+pl_add_mat3_d(const plMat3d* ptLeft, const plMat3d* ptRight)
+{
+    plMat3d tResult;
+    for(uint32_t i = 0; i < 9; i++)
+        tResult.d[i] = ptLeft->d[i] + ptRight->d[i];
+    return tResult;
+}
+
+static inline double
+pl_mat4_get_d(const plMat4d* ptMat, int iRow, int iCol)
+{
+    return ptMat->col[iCol].d[iRow];
+}
+
+static inline void
+pl_mat4_set_d(plMat4d* ptMat, int iRow, int iCol, double dValue)
+{
+    ptMat->col[iCol].d[iRow] = dValue;
+}
+
+static inline plMat4d
+pl_identity_mat4_d(void)
+{
+    return pl_create_mat4_diag_d(1.0, 1.0, 1.0, 1.0);
+}
+
+static inline plMat4d
+pl_mat4_transpose_d(const plMat4d* ptMat)
+{
+    plMat4d tResult;
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            pl_mat4_set_d(&tResult, i, j, pl_mat4_get_d(ptMat, j, i));
+    return tResult;
+}
+
+static inline plMat4d
+pl_mat4_invert_d(const plMat4d* ptMat)
+{
+    const plVec3d tA = ptMat->col[0].xyz;
+    const plVec3d tB = ptMat->col[1].xyz;
+    const plVec3d tC = ptMat->col[2].xyz;
+    const plVec3d tD = ptMat->col[3].xyz;
+
+    const double dX = pl_mat4_get_d(ptMat, 3, 0);
+    const double dY = pl_mat4_get_d(ptMat, 3, 1);
+    const double dZ = pl_mat4_get_d(ptMat, 3, 2);
+    const double dW = pl_mat4_get_d(ptMat, 3, 3);
+
+    plVec3d tS = pl_cross_vec3_d(tA, tB);
+    plVec3d tT = pl_cross_vec3_d(tC, tD);
+    plVec3d tU = pl_sub_vec3_d(pl_mul_vec3_scalard(tA, dY), pl_mul_vec3_scalard(tB, dX));
+    plVec3d tV = pl_sub_vec3_d(pl_mul_vec3_scalard(tC, dW), pl_mul_vec3_scalard(tD, dZ));
+
+    const double dInvDet = 1.0 / (pl_dot_vec3_d(tS, tV) + pl_dot_vec3_d(tT, tU));
+    tS = pl_mul_vec3_scalard(tS, dInvDet);
+    tT = pl_mul_vec3_scalard(tT, dInvDet);
+    tU = pl_mul_vec3_scalard(tU, dInvDet);
+    tV = pl_mul_vec3_scalard(tV, dInvDet);
+
+    const plVec3d tR0 = pl_add_vec3_d(pl_cross_vec3_d(tB, tV), pl_mul_vec3_scalard(tT, dY));
+    const plVec3d tR1 = pl_sub_vec3_d(pl_cross_vec3_d(tV, tA), pl_mul_vec3_scalard(tT, dX));
+    const plVec3d tR2 = pl_add_vec3_d(pl_cross_vec3_d(tD, tU), pl_mul_vec3_scalard(tS, dW));
+    const plVec3d tR3 = pl_sub_vec3_d(pl_cross_vec3_d(tU, tC), pl_mul_vec3_scalard(tS, dZ));
+    
+    plMat4d tResult;
+    tResult.x11 = tR0.x;
+    tResult.x21 = tR1.x;
+    tResult.x31 = tR2.x;
+    tResult.x41 = tR3.x;
+    tResult.x12 = tR0.y;
+    tResult.x22 = tR1.y;
+    tResult.x32 = tR2.y;
+    tResult.x42 = tR3.y;
+    tResult.x13 = tR0.z;
+    tResult.x23 = tR1.z;
+    tResult.x33 = tR2.z;
+    tResult.x43 = tR3.z;
+    tResult.x14 = -pl_dot_vec3_d(tB, tT);
+    tResult.x24 =  pl_dot_vec3_d(tA, tT);
+    tResult.x34 = -pl_dot_vec3_d(tD, tS);
+    tResult.x44 =  pl_dot_vec3_d(tC, tS);
+    return tResult;
+}
+
+static inline plMat4d
+pl_mul_scalar_mat4(double dLeft, const plMat4d* ptRight)
+{
+    plMat4d tResult;
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            pl_mat4_set_d(&tResult, i, j, dLeft * pl_mat4_get_d(ptRight, j, i));
+    return tResult;
+}
+
+static inline plVec3d
+pl_mul_mat4_vec3_d(const plMat4d* ptLeft, plVec3d tRight) 
+{
+    const plVec4d Mov0 = { tRight.x, tRight.x, tRight.x, tRight.x };
+    const plVec4d Mov1 = { tRight.y, tRight.y, tRight.y, tRight.y };
+    const plVec4d Mul0 = pl_mul_vec4_d(ptLeft->col[0], Mov0);
+    const plVec4d Mul1 = pl_mul_vec4_d(ptLeft->col[1], Mov1);
+    const plVec4d Add0 = pl_add_vec4_d(Mul0, Mul1);
+    const plVec4d Mov2 = { tRight.z, tRight.z, tRight.z, tRight.z };
+    const plVec4d Mov3 = { 1.0, 1.0, 1.0, 1.0 };
+    const plVec4d Mul2 = pl_mul_vec4_d(ptLeft->col[2], Mov2);
+    const plVec4d Mul3 = pl_mul_vec4_d(ptLeft->col[3], Mov3);
+    const plVec4d Add1 = pl_add_vec4_d(Mul2, Mul3);
+    const plVec4d Add2 = pl_add_vec4_d(Add0, Add1);
+    return pl_create_vec3_d(Add2.x, Add2.y, Add2.z );    
+}
+
+static inline plVec4d
+pl_mul_mat4_vec4_d(const plMat4d* ptLeft, plVec4d tRight) 
+{
+    const plVec4d Mov0 = { tRight.x, tRight.x, tRight.x, tRight.x };
+    const plVec4d Mov1 = { tRight.y, tRight.y, tRight.y, tRight.y };
+    const plVec4d Mul0 = pl_mul_vec4_d(ptLeft->col[0], Mov0);
+    const plVec4d Mul1 = pl_mul_vec4_d(ptLeft->col[1], Mov1);
+    const plVec4d Add0 = pl_add_vec4_d(Mul0, Mul1);
+    const plVec4d Mov2 = { tRight.z, tRight.z, tRight.z, tRight.z };
+    const plVec4d Mov3 = { tRight.w, tRight.w, tRight.w, tRight.w };
+    const plVec4d Mul2 = pl_mul_vec4_d(ptLeft->col[2], Mov2);
+    const plVec4d Mul3 = pl_mul_vec4_d(ptLeft->col[3], Mov3);
+    const plVec4d Add1 = pl_add_vec4_d(Mul2, Mul3);
+    return pl_add_vec4_d(Add0, Add1);
+}
+
+static inline plMat4d
+pl_mul_mat4_d(const plMat4d* ptLeft, const plMat4d* ptRight)
+{
+    plMat4d tResult;
+
+    // row 0
+    tResult.x11 = ptLeft->col[0].d[0] * ptRight->col[0].d[0] + ptLeft->col[1].d[0] * ptRight->col[0].d[1] + ptLeft->col[2].d[0] * ptRight->col[0].d[2] + ptLeft->col[3].d[0] * ptRight->col[0].d[3];
+    tResult.x12 = ptLeft->col[0].d[0] * ptRight->col[1].d[0] + ptLeft->col[1].d[0] * ptRight->col[1].d[1] + ptLeft->col[2].d[0] * ptRight->col[1].d[2] + ptLeft->col[3].d[0] * ptRight->col[1].d[3];
+    tResult.x13 = ptLeft->col[0].d[0] * ptRight->col[2].d[0] + ptLeft->col[1].d[0] * ptRight->col[2].d[1] + ptLeft->col[2].d[0] * ptRight->col[2].d[2] + ptLeft->col[3].d[0] * ptRight->col[2].d[3];
+    tResult.x14 = ptLeft->col[0].d[0] * ptRight->col[3].d[0] + ptLeft->col[1].d[0] * ptRight->col[3].d[1] + ptLeft->col[2].d[0] * ptRight->col[3].d[2] + ptLeft->col[3].d[0] * ptRight->col[3].d[3];
+
+    // row 1
+    tResult.x21 = ptLeft->col[0].d[1] * ptRight->col[0].d[0] + ptLeft->col[1].d[1] * ptRight->col[0].d[1] + ptLeft->col[2].d[1] * ptRight->col[0].d[2] + ptLeft->col[3].d[1] * ptRight->col[0].d[3];
+    tResult.x22 = ptLeft->col[0].d[1] * ptRight->col[1].d[0] + ptLeft->col[1].d[1] * ptRight->col[1].d[1] + ptLeft->col[2].d[1] * ptRight->col[1].d[2] + ptLeft->col[3].d[1] * ptRight->col[1].d[3];
+    tResult.x23 = ptLeft->col[0].d[1] * ptRight->col[2].d[0] + ptLeft->col[1].d[1] * ptRight->col[2].d[1] + ptLeft->col[2].d[1] * ptRight->col[2].d[2] + ptLeft->col[3].d[1] * ptRight->col[2].d[3];
+    tResult.x24 = ptLeft->col[0].d[1] * ptRight->col[3].d[0] + ptLeft->col[1].d[1] * ptRight->col[3].d[1] + ptLeft->col[2].d[1] * ptRight->col[3].d[2] + ptLeft->col[3].d[1] * ptRight->col[3].d[3];
+
+    // row 2
+    tResult.x31 = ptLeft->col[0].d[2] * ptRight->col[0].d[0] + ptLeft->col[1].d[2] * ptRight->col[0].d[1] + ptLeft->col[2].d[2] * ptRight->col[0].d[2] + ptLeft->col[3].d[2] * ptRight->col[0].d[3];
+    tResult.x32 = ptLeft->col[0].d[2] * ptRight->col[1].d[0] + ptLeft->col[1].d[2] * ptRight->col[1].d[1] + ptLeft->col[2].d[2] * ptRight->col[1].d[2] + ptLeft->col[3].d[2] * ptRight->col[1].d[3];
+    tResult.x33 = ptLeft->col[0].d[2] * ptRight->col[2].d[0] + ptLeft->col[1].d[2] * ptRight->col[2].d[1] + ptLeft->col[2].d[2] * ptRight->col[2].d[2] + ptLeft->col[3].d[2] * ptRight->col[2].d[3];
+    tResult.x34 = ptLeft->col[0].d[2] * ptRight->col[3].d[0] + ptLeft->col[1].d[2] * ptRight->col[3].d[1] + ptLeft->col[2].d[2] * ptRight->col[3].d[2] + ptLeft->col[3].d[2] * ptRight->col[3].d[3];
+
+    // row 3
+    tResult.x41 = ptLeft->col[0].d[3] * ptRight->col[0].d[0] + ptLeft->col[1].d[3] * ptRight->col[0].d[1] + ptLeft->col[2].d[3] * ptRight->col[0].d[2] + ptLeft->col[3].d[3] * ptRight->col[0].d[3];
+    tResult.x42 = ptLeft->col[0].d[3] * ptRight->col[1].d[0] + ptLeft->col[1].d[3] * ptRight->col[1].d[1] + ptLeft->col[2].d[3] * ptRight->col[1].d[2] + ptLeft->col[3].d[3] * ptRight->col[1].d[3];
+    tResult.x43 = ptLeft->col[0].d[3] * ptRight->col[2].d[0] + ptLeft->col[1].d[3] * ptRight->col[2].d[1] + ptLeft->col[2].d[3] * ptRight->col[2].d[2] + ptLeft->col[3].d[3] * ptRight->col[2].d[3];
+    tResult.x44 = ptLeft->col[0].d[3] * ptRight->col[3].d[0] + ptLeft->col[1].d[3] * ptRight->col[3].d[1] + ptLeft->col[2].d[3] * ptRight->col[3].d[2] + ptLeft->col[3].d[3] * ptRight->col[3].d[3];
+
+    return tResult;
+}
+
+static inline plMat4d
+pl_add_mat4_d(const plMat4d* ptLeft, const plMat4d* ptRight)
+{
+    plMat4d tResult;
+    for(uint32_t i = 0; i < 16; i++)
+        tResult.d[i] = ptLeft->d[i] + ptRight->d[i];
+    return tResult;
+}
+
+static inline plMat4d
+pl_mul_mat4_3_d(const plMat4d* ptLeft, const plMat4d* ptMiddle, const plMat4d* ptRight)
+{
+    plMat4d tIntermediateMatrix = pl_mul_mat4_d(ptMiddle, ptRight);
+    return pl_mul_mat4_d(ptLeft, &tIntermediateMatrix);
+}
+
+static inline plMat4d
+pl_mat4_translate_xyz_d(double dX, double dY, double dZ)
+{
+    plMat4d tResult = pl_create_mat4_diag_d(1.0, 1.0, 1.0, 1.0);
+    tResult.x14 = dX; tResult.x24 = dY; tResult.x34 = dZ;
+    return tResult;
+}
+
+static inline plMat4d
+pl_mat4_translate_vec3_d(plVec3d tVec)
+{
+    return pl_mat4_translate_xyz_d(tVec.x, tVec.y, tVec.z);
+}
+
+static inline plMat4d
+pl_mat4_rotate_vec3_d(double fAngle, plVec3d tVec)
+{
+    const double dCos = cos(fAngle);
+    const double dSin = sin(fAngle);
+
+    const plVec3d tAxis = pl_norm_vec3_d(tVec);
+    const plVec3d tTemp = pl_mul_vec3_scalard(tAxis, 1.0 - dCos);
+
+    const plMat4d tM = pl_identity_mat4_d();
+    const plMat4d tRotate = {
+        dCos + tTemp.x * tAxis.x,
+        tTemp.x * tAxis.y + dSin * tAxis.z,
+        tTemp.x * tAxis.z - dSin * tAxis.y,
+        0.0,
+        tTemp.y * tAxis.x - dSin * tAxis.z,
+        dCos + tTemp.y * tAxis.y,
+        tTemp.y * tAxis.z + dSin * tAxis.x,
+        0.0,
+        tTemp.z * tAxis.x + dSin * tAxis.y,
+        tTemp.z * tAxis.y - dSin * tAxis.x,
+        dCos + tTemp.z * tAxis.z,
+        0.0
+    };
+
+    return pl_create_mat4_cols_d(
+        pl_add_vec4_d(pl_mul_vec4_scalard(tM.col[0], tRotate.col[0].d[0]), pl_add_vec4_d(pl_mul_vec4_scalard(tM.col[1], tRotate.col[0].d[1]), pl_mul_vec4_scalard(tM.col[2], tRotate.col[0].d[2]))),
+        pl_add_vec4_d(pl_mul_vec4_scalard(tM.col[0], tRotate.col[1].d[0]), pl_add_vec4_d(pl_mul_vec4_scalard(tM.col[1], tRotate.col[1].d[1]), pl_mul_vec4_scalard(tM.col[2], tRotate.col[1].d[2]))),
+        pl_add_vec4_d(pl_mul_vec4_scalard(tM.col[0], tRotate.col[2].d[0]), pl_add_vec4_d(pl_mul_vec4_scalard(tM.col[1], tRotate.col[2].d[1]), pl_mul_vec4_scalard(tM.col[2], tRotate.col[2].d[2]))),
+        tM.col[3]); 
+}
+
+static inline plMat4d
+pl_mat4_rotate_xyz_d(double dAngle, double dX, double dY, double dZ)
+{
+    return pl_mat4_rotate_vec3_d(dAngle, pl_create_vec3_d(dX, dY, dZ));
+}
+
+static inline plMat4d
+pl_mat4_scale_xyz_d(double dX, double dY, double dZ)
+{
+    return pl_create_mat4_diag_d(dX, dY, dZ, 1.0);
+}
+
+static inline plMat4d
+pl_mat4_scale_vec3_d(plVec3d tVec)
+{
+    return pl_mat4_scale_xyz_d(tVec.x, tVec.y, tVec.z);
+}
+
+static inline plMat4d
+pl_mat4_rotate_quat_d(plVec4d tQ)
+{
+    const double x2 = tQ.x * tQ.x;
+    const double y2 = tQ.y * tQ.y;
+    const double z2 = tQ.z * tQ.z;
+    const double xy = tQ.x * tQ.y;
+    const double xz = tQ.x * tQ.z;
+    const double yz = tQ.y * tQ.z;
+    const double wx = tQ.w * tQ.x;
+    const double wy = tQ.w * tQ.y;
+    const double wz = tQ.w * tQ.z;
+
+    plMat4d tResult = pl_create_mat4_diag_d(0.0, 0.0, 0.0, 0.0);
+    tResult.col[0].x = 1.0 - 2.0 * (y2 + z2);
+    tResult.col[0].y = 2.0 * (xy + wz);
+    tResult.col[0].z = 2.0 * (xz - wy);
+
+    tResult.col[1].x = 2.0 * (xy - wz);
+    tResult.col[1].y = 1.0 - 2.0 * (x2 + z2);
+    tResult.col[1].z = 2.0 * (yz + wx);
+
+    tResult.col[2].x = 2.0 * (xz + wy);
+    tResult.col[2].y = 2.0 * (yz - wx);
+    tResult.col[2].z = 1.0 - 2.0 * (x2 + y2);
+
+    tResult.col[3].w = 1.0;
+
+    return tResult;
+}
+
+static inline plMat4d
+pl_rotation_translation_scale_d(plVec4d tQ, plVec3d tV, plVec3d tS)
+{
+
+    const plMat4d tScale = pl_mat4_scale_vec3_d(tS);
+    const plMat4d tTranslation = pl_mat4_translate_vec3_d(tV);
+    const plMat4d tRotation = pl_mat4_rotate_quat_d(tQ);
+
+    plMat4d tResult0 = pl_mul_mat4_d(&tRotation, &tScale);
+    tResult0 = pl_mul_mat4_d(&tTranslation, &tResult0);
+    return tResult0;
+}
+
+static inline plMat4d
+pl_mat4t_invert_d(const plMat4d* ptMat)
+{
+    const plVec3d tA = ptMat->col[0].xyz;
+    const plVec3d tB = ptMat->col[1].xyz;
+    const plVec3d tC = ptMat->col[2].xyz;
+    const plVec3d tD = ptMat->col[3].xyz;
+
+    plVec3d tS = pl_cross_vec3_d(tA, tB);
+    plVec3d tT = pl_cross_vec3_d(tC, tD);
+
+    const double dInvDet = 1.0 / pl_dot_vec3_d(tS, tC);
+    tS = pl_mul_vec3_scalard(tS, dInvDet);
+    tT = pl_mul_vec3_scalard(tT, dInvDet);
+
+    const plVec3d tV = pl_mul_vec3_scalard(tC, dInvDet);
+    const plVec3d tR0 = pl_cross_vec3_d(tB, tV);
+    const plVec3d tR1 = pl_cross_vec3_d(tV, tA);
+    
+    plMat4d tResult;
+    tResult.x11 = tR0.x;
+    tResult.x21 = tR1.x;
+    tResult.x31 = tS.x;
+    tResult.x41 = 0.0;
+    tResult.x12 = tR0.y;
+    tResult.x22 = tR1.y;
+    tResult.x32 = tS.y;
+    tResult.x42 = 0.0;
+    tResult.x13 = tR0.z;
+    tResult.x23 = tR1.z;
+    tResult.x33 = tS.z;
+    tResult.x43 = 0.0;
+    tResult.x14 = -pl_dot_vec3_d(tB, tT);
+    tResult.x24 = pl_dot_vec3_d(tA, tT);
+    tResult.x34 = -pl_dot_vec3_d(tD, tS);
+    tResult.x44 = 1.0;
+    return tResult;
+}
+
+static inline plMat4d
+pl_mul_mat4t_d(const plMat4d* ptLeft, const plMat4d* ptRight)
+{
+    plMat4d tResult = pl_create_mat4_diag_d(0.0, 0.0, 0.0, 1.0);
+
+    // row 0
+    tResult.x11 = ptLeft->x11 * ptRight->x11 + ptLeft->x12 * ptRight->x21 + ptLeft->x13 * ptRight->x31;
+    tResult.x12 = ptLeft->x11 * ptRight->x12 + ptLeft->x12 * ptRight->x22 + ptLeft->x13 * ptRight->x32;
+    tResult.x13 = ptLeft->x11 * ptRight->x13 + ptLeft->x12 * ptRight->x23 + ptLeft->x13 * ptRight->x33;
+    tResult.x14 = ptLeft->x11 * ptRight->x14 + ptLeft->x12 * ptRight->x24 + ptLeft->x13 * ptRight->x34 + ptLeft->x14;
+
+    // row 1
+    tResult.x21 = ptLeft->x21 * ptRight->x11 + ptLeft->x22 * ptRight->x21 + ptLeft->x23 * ptRight->x31;
+    tResult.x22 = ptLeft->x21 * ptRight->x12 + ptLeft->x22 * ptRight->x22 + ptLeft->x23 * ptRight->x32;
+    tResult.x23 = ptLeft->x21 * ptRight->x13 + ptLeft->x22 * ptRight->x23 + ptLeft->x23 * ptRight->x33;
+    tResult.x24 = ptLeft->x21 * ptRight->x14 + ptLeft->x22 * ptRight->x24 + ptLeft->x23 * ptRight->x34 + ptLeft->x24;
+
+    // row 2
+    tResult.x31 = ptLeft->x31 * ptRight->x11 + ptLeft->x32 * ptRight->x21 + ptLeft->x33 * ptRight->x31;
+    tResult.x32 = ptLeft->x31 * ptRight->x12 + ptLeft->x32 * ptRight->x22 + ptLeft->x33 * ptRight->x32;
+    tResult.x33 = ptLeft->x31 * ptRight->x13 + ptLeft->x32 * ptRight->x23 + ptLeft->x33 * ptRight->x33;
+    tResult.x34 = ptLeft->x31 * ptRight->x14 + ptLeft->x32 * ptRight->x24 + ptLeft->x33 * ptRight->x34 + ptLeft->x34;
+
+    return tResult;
+}
+
+static inline plVec3d
+pl_mul_quat_vec3_d(plVec3d tV, plVec4d tQ)
+{
+    return pl_add_vec3_d(pl_add_vec3_d(pl_mul_vec3_scalard(tV, tQ.w * tQ.w - (tQ.x * tQ.x + tQ.y * tQ.y + tQ.z * tQ.z)), pl_mul_vec3_scalard(tQ.xyz, pl_dot_vec3_d(tV, tQ.xyz) * 2.0)), pl_mul_vec3_scalard(pl_cross_vec3_d(tQ.xyz, tV), tQ.w * 2.0));
+}
+
+static inline plVec4d
+pl_mul_quat_d(plVec4d tQ1, plVec4d tQ2)
+{
+    return pl_create_vec4_d(tQ1.w * tQ2.x + tQ1.x * tQ2.w + tQ1.y * tQ2.z - tQ1.z * tQ2.y, tQ1.w * tQ2.y - tQ1.x * tQ2.z + tQ1.y * tQ2.w + tQ1.z * tQ2.x, tQ1.w * tQ2.z + tQ1.x * tQ2.y - tQ1.y * tQ2.x + tQ1.z * tQ2.w, tQ1.w * tQ2.w - tQ1.x * tQ2.x - tQ1.y * tQ2.y - tQ1.z * tQ2.z);
+}
+
+static inline plVec4d
+pl_quat_rotation_d(double dAngle, double dX, double dY, double dZ)
+{
+    const double dSin2 = sin(0.5 * dAngle);
+    return pl_create_vec4_d(dSin2 * dX, dSin2 * dY, dSin2 * dZ, cos(0.5 * dAngle));
+}
+
+static inline plVec4d
+pl_quat_rotation_vec3_d(double dAngle, plVec3d tAxis)
+{
+    return pl_quat_rotation_d(dAngle, tAxis.x, tAxis.y, tAxis.z);
+}
+
+static inline plVec4d
+pl_norm_quat_d(plVec4d tQ)
+{
+    return pl_norm_vec4_d(tQ);
+}
+
+static inline plVec4d
+pl_quat_slerp_d(plVec4d tQ1, plVec4d tQ2, double dT)
+{
+
+	// from https://glmatrix.net/docs/quat.js.html
+	plVec4d tQn1 = pl_norm_vec4_d(tQ1);
+	plVec4d tQn2 = pl_norm_vec4_d(tQ2);
+
+	plVec4d tResult;
+
+	double dAx = tQn1.x;
+	double dAy = tQn1.y;
+	double dAz = tQn1.z;
+	double dAw = tQn1.w;
+
+	double dBx = tQn2.x;
+	double dBy = tQn2.y;
+	double dBz = tQn2.z;
+	double dBw = tQn2.w;
+
+	double dOmega = 0.0;
+	double dCosom = dAx * dBx + dAy * dBy + dAz * dBz + dAw * dBw;
+	double dSinom = 0.0;
+	double dScale0 = 0.0;
+	double dScale1 = 0.0;
+
+	// adjust signs (if necessary)
+	if (dCosom < 0.0f) 
+	{
+		dCosom = -dCosom;
+		dBx = -dBx;
+		dBy = -dBy;
+		dBz = -dBz;
+		dBw = -dBw;
+	}
+
+	// calculate coefficients
+	if (1.0 - dCosom > 0.000001)
+	{
+		// standard case (slerp)
+		dOmega = acos(dCosom);
+		dSinom = sin(dOmega);
+		dScale0 = sin((1.0 - dT) * dOmega) / dSinom;
+		dScale1 = sin(dT * dOmega) / dSinom;
+	}
+	else 
+	{
+		// "from" and "to" quaternions are very close
+		//  ... so we can do a linear interpolation
+		dScale0 = 1.0 - dT;
+		dScale1 = dT;
+	}
+
+	// calculate final values
+	tResult.d[0] = dScale0 * dAx + dScale1 * dBx;
+	tResult.d[1] = dScale0 * dAy + dScale1 * dBy;
+	tResult.d[2] = dScale0 * dAz + dScale1 * dBz;
+	tResult.d[3] = dScale0 * dAw + dScale1 * dBw;
+
+	tResult = pl_norm_vec4_d(tResult);
+
+	return tResult;
+}
+
+static inline double
+pl_quat_decompose_d(plVec4d tQ, plVec3d* ptAxisOut)
+{
+    const double dAngle = 2.0 * acos(tQ.w);
+    if(dAngle != 0.0)
+    { 
+        const double dSin = sin(0.5 * dAngle);
+        ptAxisOut->x = tQ.x / dSin;
+        ptAxisOut->y = tQ.y / dSin;
+        ptAxisOut->z = tQ.z / dSin;
+    }
+    return dAngle;
+}
+
+static inline void
+pl_decompose_matrix_d(const plMat4d* ptM, plVec3d* ptS, plVec4d* ptQ, plVec3d* ptT)
+{
+    // method borrowed from blender source
+
+    // caller must ensure matrices aren't negative for valid results
+
+    *ptT = ptM->col[3].xyz;
+
+    ptS->x = pl_length_vec3_d(ptM->col[0].xyz);
+    ptS->y = pl_length_vec3_d(ptM->col[1].xyz);
+    ptS->z = pl_length_vec3_d(ptM->col[2].xyz);
+
+    // method outlined by Mike Day, ref: https://math.stackexchange.com/a/3183435/220949
+    // with an additional `sqrtf(..)` for higher precision result.
+
+    plMat4d tMat = pl_create_mat4_diag_d(0.0, 0.0, 0.0, 0.0);
+    tMat.col[0] = pl_norm_vec4_d(ptM->col[0]);
+    tMat.col[1] = pl_norm_vec4_d(ptM->col[1]);
+    tMat.col[2] = pl_norm_vec4_d(ptM->col[2]);
+
+    if (tMat.col[2].d[2] < 0.0)
+    {
+        if (tMat.col[0].d[0] > tMat.col[1].d[1])
+        {
+            const double dTrace = 1.0 + tMat.col[0].d[0] - tMat.col[1].d[1] - tMat.col[2].d[2];
+            double dS = 2.0 * sqrt(dTrace);
+            if (tMat.col[1].d[2] < tMat.col[2].d[1]) // ensure W is non-negative for a canonical result
+                dS = -dS;
+            ptQ->d[0] = 0.25 * dS;
+            dS = 1.0 / dS;
+            ptQ->d[3] = (tMat.col[1].d[2] - tMat.col[2].d[1]) * dS;
+            ptQ->d[1] = (tMat.col[0].d[1] + tMat.col[1].d[0]) * dS;
+            ptQ->d[2] = (tMat.col[2].d[0] + tMat.col[0].d[2]) * dS;
+            if ((dTrace == 1.0) && (ptQ->d[3] == 0.0 && ptQ->d[1] == 0.0 && ptQ->d[2] == 0.0)) // avoids the need to normalize the degenerate case
+                ptQ->d[0] = 1.0;
+        }
+        else
+        {
+            const double dTrace = 1.0 - tMat.col[0].d[0] + tMat.col[1].d[1] - tMat.col[2].d[2];
+            double dS = 2.0 * sqrt(dTrace);
+            if (tMat.col[2].d[0] < tMat.col[0].d[2]) // ensure W is non-negative for a canonical result
+                dS = -dS;
+            ptQ->d[1] = 0.25 * dS;
+            dS = 1.0 / dS;
+            ptQ->d[3] = (tMat.col[2].d[0] - tMat.col[0].d[2]) * dS;
+            ptQ->d[0] = (tMat.col[0].d[1] + tMat.col[1].d[0]) * dS;
+            ptQ->d[2] = (tMat.col[1].d[2] + tMat.col[2].d[1]) * dS;
+            if ((dTrace == 1.0) && (ptQ->d[3] == 0.0 && ptQ->d[0] == 0.0 && ptQ->d[2] == 0.0)) // avoids the need to normalize the degenerate case
+                ptQ->d[1] = 1.0;
+        }
+    }
+    else
+    {
+        if (tMat.col[0].d[0] < -tMat.col[1].d[1])
+        {
+            const double dTrace = 1.0 - tMat.col[0].d[0] - tMat.col[1].d[1] + tMat.col[2].d[2];
+            double dS = 2.0 * sqrt(dTrace);
+            if (tMat.col[0].d[1] < tMat.col[1].d[0]) // ensure W is non-negative for a canonical result
+                dS = -dS;
+            ptQ->d[2] = 0.25 * dS;
+            dS = 1.0 / dS;
+            ptQ->d[3] = (tMat.col[0].d[1] - tMat.col[1].d[0]) * dS;
+            ptQ->d[0] = (tMat.col[2].d[0] + tMat.col[0].d[2]) * dS;
+            ptQ->d[1] = (tMat.col[1].d[2] + tMat.col[2].d[1]) * dS;
+            if ((dTrace == 1.0) && (ptQ->d[3] == 0.0 && ptQ->d[0] == 0.0 && ptQ->d[1] == 0.0)) // avoids the need to normalize the degenerate case
+                ptQ->d[2] = 1.0;
+        }
+        else
+        {
+            // note: a zero matrix will fall through to this block,
+            // needed so a zero scaled matrices to return a quaternion without rotation
+            const double dTrace = 1.0 + tMat.col[0].d[0] + tMat.col[1].d[1] + tMat.col[2].d[2];
+            double dS = 2.0 * sqrt(dTrace);
+            ptQ->d[3] = 0.25 * dS;
+            dS = 1.0 / dS;
+            ptQ->d[0] = (tMat.col[1].d[2] - tMat.col[2].d[1]) * dS;
+            ptQ->d[1] = (tMat.col[2].d[0] - tMat.col[0].d[2]) * dS;
+            ptQ->d[2] = (tMat.col[0].d[1] - tMat.col[1].d[0]) * dS;
+            if ((dTrace == 1.0) && (ptQ->d[0] == 0.0 && ptQ->d[1] == 0.0 && ptQ->d[2] == 0.0)) // avoids the need to normalize the degenerate case
+                ptQ->d[3] = 1.0;
+        }
+    }
+
+    PL_ASSERT(!(ptQ->d[3] < 0.0));
+}
+
+static inline plRect
+pl_calculate_rect(plVec2 tStart, plVec2 tSize)
+{
+    return pl_create_rect_vec2(tStart, pl_add_vec2(tStart, tSize));
+}
+
+static inline float
+pl_rect_width(const plRect* ptRect)
+{
+    return ptRect->tMax.x - ptRect->tMin.x;
+}
+
+static inline float
+pl_rect_height(const plRect* ptRect)
+{
+    return ptRect->tMax.y - ptRect->tMin.y;
+}
+
+static inline plVec2
+pl_rect_size(const plRect* ptRect)
+{
+    return pl_sub_vec2(ptRect->tMax, ptRect->tMin);
+}
+
+static inline plVec2
+pl_rect_center(const plRect* ptRect)
+{
+    return pl_create_vec2((ptRect->tMax.x + ptRect->tMin.x) * 0.5f, (ptRect->tMax.y + ptRect->tMin.y) * 0.5f);
+}
+
+static inline plVec2
+pl_rect_top_left(const plRect* ptRect)
+{
+    return ptRect->tMin;
+}
+
+static inline plVec2
+pl_rect_top_right(const plRect* ptRect)
+{
+    return pl_create_vec2(ptRect->tMax.x, ptRect->tMin.y);
+}
+
+static inline plVec2
+pl_rect_bottom_left(const plRect* ptRect)
+{
+    return pl_create_vec2(ptRect->tMin.x, ptRect->tMax.y);
+}
+
+static inline plVec2
+pl_rect_bottom_right(const plRect* ptRect)
+{
+    return ptRect->tMax;
+}
+
+static inline bool
+pl_rect_contains_point(const plRect* ptRect, plVec2 tP)
+{
+    return tP.x >= ptRect->tMin.x && tP.y >= ptRect->tMin.y && tP.x < ptRect->tMax.x && tP.y < ptRect->tMax.y;
+}
+
+static inline bool
+pl_rect_contains_rect(const plRect* ptRect0, const plRect* ptRect1)
+{
+    return ptRect1->tMin.x >= ptRect0->tMin.x && ptRect1->tMin.y >= ptRect0->tMin.y && ptRect1->tMax.x <= ptRect0->tMax.x && ptRect1->tMax.y <= ptRect0->tMax.y;
+}
+
+static inline bool
+pl_rect_overlaps_rect(const plRect* ptRect0, const plRect* ptRect1)
+{
+    return ptRect1->tMin.y <  ptRect0->tMax.y && ptRect1->tMax.y >  ptRect0->tMin.y && ptRect1->tMin.x <  ptRect0->tMax.x && ptRect1->tMax.x > ptRect0->tMin.x;
+}
+
+static inline bool
+pl_rect_is_inverted(const plRect* ptRect)
+{
+    return ptRect->tMin.x > ptRect->tMax.x || ptRect->tMin.y > ptRect->tMax.y;
+}
+
+static inline plRect
+pl_rect_expand(const plRect* ptRect, float fPadding)
+{
+    const plVec2 tMin = pl_create_vec2(ptRect->tMin.x - fPadding, ptRect->tMin.y - fPadding);
+    const plVec2 tMax = pl_create_vec2(ptRect->tMax.x + fPadding, ptRect->tMax.y + fPadding);
+    return pl_create_rect_vec2(tMin, tMax);
+}
+
+static inline plRect
+pl_rect_expand_vec2(const plRect* ptRect, plVec2 tPadding)
+{
+    const plVec2 tMin = pl_create_vec2(ptRect->tMin.x - tPadding.x, ptRect->tMin.y - tPadding.y);
+    const plVec2 tMax = pl_create_vec2(ptRect->tMax.x + tPadding.x, ptRect->tMax.y + tPadding.y);
+    return pl_create_rect_vec2(tMin, tMax);
+}
+
+static inline plRect
+pl_rect_clip(const plRect* ptRect0, const plRect* ptRect1)
+{
+    const plVec2 tMin = pl_create_vec2(pl_maxf(ptRect0->tMin.x, ptRect1->tMin.x), pl_maxf(ptRect0->tMin.y, ptRect1->tMin.y));
+    const plVec2 tMax = pl_create_vec2(pl_minf(ptRect0->tMax.x, ptRect1->tMax.x), pl_minf(ptRect0->tMax.y, ptRect1->tMax.y));
+    return pl_create_rect_vec2(tMin, tMax);
+}
+
+static inline plRect
+pl_rect_clip_full(const plRect* ptRect0, const plRect* ptRect1)
+{
+    const plVec2 tMin = pl_clamp_vec2(ptRect1->tMin, ptRect0->tMin, ptRect1->tMax);
+    const plVec2 tMax = pl_clamp_vec2(ptRect1->tMin, ptRect0->tMax, ptRect1->tMax);
+    return pl_create_rect_vec2(tMin, tMax);
+}
+
+static inline plRect
+pl_rect_floor(const plRect* ptRect)
+{
+    const plVec2 tMin = pl_create_vec2( floorf(ptRect->tMin.x), floorf(ptRect->tMin.y));
+    const plVec2 tMax = pl_create_vec2(floorf(ptRect->tMax.x), floorf(ptRect->tMax.y));
+    return pl_create_rect_vec2(tMin, tMax);
+}
+
+static inline plRect
+pl_rect_translate_vec2(const plRect* ptRect, plVec2 tDelta)
+{
+    const plVec2 tMin = pl_create_vec2(ptRect->tMin.x + tDelta.x, ptRect->tMin.y + tDelta.y);
+    const plVec2 tMax = pl_create_vec2(ptRect->tMax.x + tDelta.x, ptRect->tMax.y + tDelta.y);
+    return pl_create_rect_vec2(tMin, tMax);
+}
+
+static inline plRect
+pl_rect_translate_x(const plRect* ptRect, float fDx)
+{
+    const plVec2 tMin = pl_create_vec2(ptRect->tMin.x + fDx, ptRect->tMin.y);
+    const plVec2 tMax = pl_create_vec2(ptRect->tMax.x + fDx, ptRect->tMax.y);
+    return pl_create_rect_vec2(tMin, tMax);
+}
+
+static inline plRect
+pl_rect_translate_y(const plRect* ptRect, float fDy)
+{
+    const plVec2 tMin = pl_create_vec2(ptRect->tMin.x, ptRect->tMin.y + fDy);
+    const plVec2 tMax = pl_create_vec2(ptRect->tMax.x, ptRect->tMax.y + fDy);
+    return pl_create_rect_vec2(tMin, tMax);
+}
+
+static inline plRect
+pl_rect_add_point(const plRect* ptRect, plVec2 tP)
+{
+    const plVec2 tMin = pl_create_vec2(ptRect->tMin.x > tP.x ? tP.x : ptRect->tMin.x, ptRect->tMin.y > tP.y ? tP.y : ptRect->tMin.y);
+    const plVec2 tMax = pl_create_vec2(ptRect->tMax.x < tP.x ? tP.x : ptRect->tMax.x, ptRect->tMax.y < tP.y ? tP.y : ptRect->tMax.y);
+    return pl_create_rect_vec2(tMin, tMax);
+}
+
+static inline plRect
+pl_rect_add_rect(const plRect* ptRect0, const plRect* ptRect1)
+{
+    const plVec2 tMin = pl_create_vec2(ptRect0->tMin.x > ptRect1->tMin.x ? ptRect1->tMin.x : ptRect0->tMin.x, ptRect0->tMin.y > ptRect1->tMin.y ? ptRect1->tMin.y : ptRect0->tMin.y);
+    const plVec2 tMax = pl_create_vec2(ptRect0->tMax.x < ptRect1->tMax.x ? ptRect1->tMax.x : ptRect0->tMax.x, ptRect0->tMax.y < ptRect1->tMax.y ? ptRect1->tMax.y : ptRect0->tMax.y);
+    return pl_create_rect_vec2(tMin, tMax);
+}
+
+static inline plRect
+pl_rect_move_center(const plRect* ptRect, float fX, float fY)
+{
+    const plVec2 tCurrentCenter = pl_rect_center(ptRect);
+    const float fDx = fX - tCurrentCenter.x;
+    const float fDy = fY - tCurrentCenter.y;
+    const plRect tResult = {{ ptRect->tMin.x + fDx, ptRect->tMin.y + fDy},{ ptRect->tMax.x + fDx, ptRect->tMax.y + fDy}};
+    return tResult;
+}
+
+static inline plRect
+pl_rect_move_center_y(const plRect* ptRect, float fY)
+{
+    const plVec2 tCurrentCenter = pl_rect_center(ptRect);
+    const float fDy = fY - tCurrentCenter.y;
+    const plRect tResult = {{ ptRect->tMin.x, ptRect->tMin.y + fDy},{ ptRect->tMax.x, ptRect->tMax.y + fDy}};
+    return tResult;
+}
+
+static inline plRect
+pl_rect_move_center_x(const plRect* ptRect, float fX)
+{
+    const plVec2 tCurrentCenter = pl_rect_center(ptRect);
+    const float fDx = fX - tCurrentCenter.x;
+    const plRect tResult = { { ptRect->tMin.x + fDx, ptRect->tMin.y}, { ptRect->tMax.x + fDx, ptRect->tMax.y} };
+    return tResult;
+}
+
+static inline plRect
+pl_rect_move_start(const plRect* ptRect, float fX, float fY)
+{
+    const plRect tResult = {{ fX, fY}, { fX + ptRect->tMax.x - ptRect->tMin.x, fY + ptRect->tMax.y - ptRect->tMin.y} };
+    return tResult;
+}
+
+static inline plRect
+pl_rect_move_start_x(const plRect* ptRect, float fX)
+{
+    const plRect tResult = { { fX, ptRect->tMin.y}, { fX + ptRect->tMax.x - ptRect->tMin.x, ptRect->tMax.y} };
+    return tResult;
+}
+
+static inline plRect
+pl_rect_move_start_y(const plRect* ptRect, float fY)
+{
+    const plRect tResult = {{ ptRect->tMin.x, fY}, { ptRect->tMax.x, fY + ptRect->tMax.y - ptRect->tMin.y}};
+    return tResult;
+}
+
+static inline plAABB
+pl_aabb_merge(const plAABB* tA, const plAABB* tB)
+{
+    plAABB tResult = {pl_min_vec3(tA->tMin, tB->tMin), pl_max_vec3(tA->tMax, tB->tMax)};
+    return tResult;
+}
+
+static inline plVec3
+pl_aabb_half_width(const plAABB* tA)
+{
+    return pl_create_vec3(0.5f * (tA->tMax.x - tA->tMin.x), 0.5f * (tA->tMax.y - tA->tMin.y), 0.5f * (tA->tMax.z - tA->tMin.z));
+}
+
+static inline plVec3
+pl_aabb_center(const plAABB* tA)
+{
+    return pl_create_vec3(0.5f * (tA->tMax.x + tA->tMin.x), 0.5f * (tA->tMax.y + tA->tMin.y), 0.5f * (tA->tMax.z + tA->tMin.z));
+}
+
+#endif // PL_MATH_INCLUDE_FUNCTIONS
