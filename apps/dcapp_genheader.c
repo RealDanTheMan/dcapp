@@ -14,6 +14,8 @@
 
 static void _process_node_children(xmlNodePtr xml_node, DcAppLookup *lookup);
 static void _process_node(xmlNodePtr xml_node, DcAppLookup *lookup);
+static bool _check_draw_function_node(xmlNodePtr xml_node);
+static bool _copy_draw_api_headers(const DcAppConfig *config);
 
 int main(int argc, char **argv) {
 
@@ -71,6 +73,12 @@ int main(int argc, char **argv) {
     // process XML
     xmlNodePtr root_node = xmlDocGetRootElement(config->xml_doc);
     _process_node(root_node, lookup);
+
+    if (_check_draw_function_node(root_node)) {
+        if (!_copy_draw_api_headers(config))
+            DC_LOG_ERROR("GenHeader", "Failed to copy draw API headers");
+            return 1;
+    }
 
     // create directory
     char logic_dir[DC_UTILS_FILEPATH_BUFFER_SIZE];
@@ -297,4 +305,59 @@ void _process_node(xmlNodePtr xml_node, DcAppLookup *lookup) {
             break;
         }
     }
+}
+
+bool _check_draw_function_node(xmlNodePtr xml_node) {
+    switch (dc_app_xml_node_to_elem_type(xml_node)) {
+
+        case DC_APP_ELEM_TYPE_DRAW_FUNCTION: {
+            return true;
+        }
+    }
+
+    xmlNodePtr xml_child_node = xml_node->children;
+    while (xml_child_node) {
+        if (_check_draw_function_node(xml_child_node)) {
+            return true;
+        }
+
+        xml_child_node = xml_child_node->next;
+    }
+
+    return false;
+}
+
+bool _copy_draw_api_headers(const DcAppConfig *config) {
+
+    // copy dc_draw_ext.h
+    char src_draw_ext_header[DC_UTILS_FILEPATH_BUFFER_SIZE];
+    dc_utils_join_paths(config->dcapp_dir_path, "/extensions/dc_draw_ext.h", src_draw_ext_header, sizeof(src_draw_ext_header));
+
+    char dst_draw_ext_header[DC_UTILS_FILEPATH_BUFFER_SIZE];
+    dc_utils_join_paths(config->config_dir_path, "/logic/dc_draw_ext.h", dst_draw_ext_header, sizeof(dst_draw_ext_header));
+
+    if (dc_utils_copy_file(src_draw_ext_header, dst_draw_ext_header))
+        return false;
+
+    // copy draw_primitives.h
+    char src_draw_primitives_header[DC_UTILS_FILEPATH_BUFFER_SIZE];
+    dc_utils_join_paths(config->dcapp_dir_path, "/apps/dcapp/draw_primitives.h", src_draw_primitives_header, sizeof(src_draw_primitives_header));
+
+    char dst_draw_primitives_header[DC_UTILS_FILEPATH_BUFFER_SIZE];
+    dc_utils_join_paths(config->config_dir_path, "/logic/draw_primitives.h", dst_draw_primitives_header, sizeof(dst_draw_primitives_header));
+
+    if (dc_utils_copy_file(src_draw_primitives_header, dst_draw_primitives_header))
+        return false;
+
+    // copy pl_math.h
+    char src_pl_math_header[DC_UTILS_FILEPATH_BUFFER_SIZE];
+    dc_utils_join_paths(config->dcapp_dir_path, "/pilotlight/libs/pl_math.h", src_pl_math_header, sizeof(src_pl_math_header));
+
+    char dst_pl_math_header[DC_UTILS_FILEPATH_BUFFER_SIZE];
+    dc_utils_join_paths(config->config_dir_path, "/logic/pl_math.h", dst_pl_math_header, sizeof(dst_pl_math_header));
+
+    if (dc_utils_copy_file(src_pl_math_header, dst_pl_math_header))
+        return false;
+
+    return true;
 }

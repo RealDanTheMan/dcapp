@@ -303,3 +303,40 @@ bool dc_utils_file_exists(const char *path) {
     return (stat(path, &st) == 0 && S_ISREG(st.st_mode));
 #endif
 }
+
+bool dc_utils_copy_file(const char *src_path, const char *dst_path) {
+    if (!src_path || !dst_path) {
+        DC_LOG_ERROR("File", "Invalid file buffers during copy operation");
+        return false;
+    }
+
+#if defined(_WIN32) || defined(_WIN64)
+    if (CopyFileA(src_path, dst_path, FALSE) == 0) {
+        DC_LOG_ERROR("File", "Failed to copy file from '%s' to '%s'", src_path, dst_path);
+        return false;
+    }
+#else
+    FILE *src_file = fopen(src_path, "rb");
+    if (!src_file) {
+        DC_LOG_ERROR("File", "Failed to open source file during copy operation: %s", src_path);
+        return false;
+    }
+
+    FILE *dst_file = fopen(dst_path, "wb");
+    if (!dst_file) {
+        DC_LOG_ERROR("File", "Failed to open destination file during copy operation: %s", dst_path);
+        fclose(src_file);
+        return false;
+    }
+
+    char buffer[4096];
+    size_t bytes;
+    while ((bytes = fread(buffer, 1, sizeof(buffer), src_file)) > 0) {
+        fwrite(buffer, 1, bytes, dst_file);
+    }
+
+    fclose(src_file);
+    fclose(dst_file);
+#endif
+    return false;
+}

@@ -22,6 +22,7 @@ int            dc_utils_create_directory(const char *path);
 unsigned char *dc_utils_load_binary_file(const char *path, size_t *out_size);
 char          *dc_utils_load_text_file(const char *path);
 bool           dc_utils_file_exists(const char *path);
+bool           dc_utils_copy_file(const char *src_path, const char *dst_path);
 
 #ifdef __cplusplus
 }
